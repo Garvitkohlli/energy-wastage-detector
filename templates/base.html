@@ -83,6 +83,12 @@
             color: white;
         }
         
+        nav .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
         nav ul { 
             list-style: none; 
             display: flex; 
@@ -104,6 +110,34 @@
         nav a:hover { 
             background: var(--bg-card);
             color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        
+        .user-name {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .logout-btn:hover {
+            background: #dc2626;
             transform: translateY(-2px);
         }
         
@@ -532,12 +566,20 @@
                 <div class="logo-icon">EM</div>
                 <span>Energy Monitor AI</span>
             </div>
-            <ul>
-                <li><a href="/">Home</a></li>
-                <li><a href="/dashboard">Dashboard</a></li>
-                <li><a href="/analytics">Analytics</a></li>
-                <li><a href="/iot">IoT Devices</a></li>
-            </ul>
+            <div class="nav-links">
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/dashboard">Dashboard</a></li>
+                    <li><a href="/analytics">Analytics</a></li>
+                    <li><a href="/iot">IoT Devices</a></li>
+                </ul>
+                {% if current_user.is_authenticated %}
+                <div class="user-info">
+                    <span class="user-name">{{ current_user.full_name or current_user.username }}</span>
+                    <a href="/logout" class="logout-btn">Logout</a>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </nav>
     

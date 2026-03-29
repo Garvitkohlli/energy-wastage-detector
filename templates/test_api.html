@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e293b; color: #f1f5f9; }
+        pre { background: #0f172a; padding: 20px; border-radius: 8px; overflow: auto; }
+        button { padding: 10px 20px; font-size: 16px; margin: 10px 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>API Response Test</h1>
+    
+    <button onclick="testAPI('Air Conditioner')">Test Air Conditioner</button>
+    <button onclick="testAPI('Laptop')">Test Laptop</button>
+    <button onclick="testAPI('Light Bulb')">Test Light Bulb</button>
+    <button onclick="testAPI('Refrigerator')">Test Refrigerator</button>
+    
+    <h2>Raw API Response:</h2>
+    <pre id="response"></pre>
+    
+    <h2>Hourly Stats Keys:</h2>
+    <pre id="keys"></pre>
+    
+    <h2>Sample Hours:</h2>
+    <pre id="samples"></pre>
+    
+    <script>
+        async function testAPI(appliance) {
+            try {
+                const response = await fetch(`/api/usage_analysis/${encodeURIComponent(appliance)}`);
+                const data = await response.json();
+                
+                // Show raw response
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+                
+                // Show keys
+                const keys = Object.keys(data.hourly_stats || {});
+                document.getElementById('keys').textContent = 
+                    `Total keys: ${keys.length}\n` +
+                    `Keys: ${keys.join(', ')}\n` +
+                    `First key type: ${typeof keys[0]}`;
+                
+                // Show samples
+                let samples = '';
+                for (let hour of [0, 6, 12, 18, 23]) {
+                    const stats = data.hourly_stats[hour] || data.hourly_stats[hour.toString()] || 'NOT FOUND';
+                    samples += `Hour ${hour}: ${JSON.stringify(stats)}\n`;
+                }
+                document.getElementById('samples').textContent = samples;
+                
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

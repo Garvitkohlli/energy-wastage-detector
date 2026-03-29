@@ -21,8 +21,11 @@
     <button onclick="startMonitoring()" class="btn btn-success" style="font-size: 1.2rem; padding: 1rem 2rem; margin-right: 1rem;">
         Start Monitoring
     </button>
-    <button onclick="stopMonitoring()" class="btn btn-danger" style="font-size: 1.2rem; padding: 1rem 2rem;">
+    <button onclick="stopMonitoring()" class="btn btn-danger" style="font-size: 1.2rem; padding: 1rem 2rem; margin-right: 1rem;">
         Stop Monitoring
+    </button>
+    <button onclick="retrainModel()" class="btn btn-secondary" style="font-size: 1.2rem; padding: 1rem 2rem;">
+        Retrain Model from Database
     </button>
 </div>
 
@@ -121,6 +124,34 @@ async function stopMonitoring() {
         loadAppliances();
     } catch (error) {
         alert('Error stopping monitoring: ' + error.message);
+    }
+}
+
+async function retrainModel() {
+    if (!selectedAppliance) {
+        alert('Please select an appliance first!');
+        return;
+    }
+    
+    if (!confirm(`Retrain ML model for ${selectedAppliance} using database history?\n\nThis will update the model with all historical readings.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/retrain_model/${selectedAppliance}`);
+        const data = await response.json();
+        
+        if (response.ok && data.status === 'success') {
+            alert(`✓ Success!\n\n${data.message}\n\nTraining samples: ${data.training_samples}\nTotal readings: ${data.total_readings || 'N/A'}`);
+            loadAppliances();
+            updateStatus(); // Refresh the display
+        } else {
+            // Show error message from server
+            alert(`✗ Retraining Failed\n\n${data.message || 'Unknown error occurred'}`);
+        }
+    } catch (error) {
+        alert(`✗ Error\n\nFailed to retrain model: ${error.message}\n\nPlease check the console for details.`);
+        console.error('Retrain error:', error);
     }
 }
 

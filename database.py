@@ -27,10 +27,40 @@ def init_database():
     with get_db() as conn:
         cursor = conn.cursor()
         
-        # Readings table
+        # Users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                full_name TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_login DATETIME,
+                is_active BOOLEAN DEFAULT 1
+            )
+        ''')
+        
+        # User appliances table (each user has their own appliances)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_appliances (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                appliance_name TEXT NOT NULL,
+                base_power REAL NOT NULL,
+                variance REAL NOT NULL,
+                pattern TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(user_id, appliance_name)
+            )
+        ''')
+        
+        # Readings table (now linked to users)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS readings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 appliance TEXT NOT NULL,
                 power_watts REAL NOT NULL,
                 timestamp DATETIME NOT NULL,
@@ -39,14 +69,34 @@ def init_database():
                 is_anomaly BOOLEAN DEFAULT 0,
                 anomaly_score REAL,
                 deviation_percent REAL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
         
-        # Anomalies table
+        # User hourly patterns (stores learned patterns per user per appliance)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_hourly_patterns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                appliance TEXT NOT NULL,
+                hour INTEGER NOT NULL,
+                day_of_week INTEGER NOT NULL,
+                avg_power REAL NOT NULL,
+                min_power REAL NOT NULL,
+                max_power REAL NOT NULL,
+                reading_count INTEGER NOT NULL,
+                last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(user_id, appliance, hour, day_of_week)
+            )
+        ''')
+        
+        # Anomalies table (user-specific)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS anomalies (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 appliance TEXT NOT NULL,
                 power_watts REAL NOT NULL,
                 expected_power REAL NOT NULL,
@@ -54,28 +104,32 @@ def init_database():
                 anomaly_score REAL NOT NULL,
                 severity TEXT NOT NULL,
                 timestamp DATETIME NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
         
-        # Cutoffs table
+        # Cutoffs table (user-specific)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS cutoffs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 appliance TEXT NOT NULL,
                 power_watts REAL NOT NULL,
                 expected_power REAL NOT NULL,
                 deviation_percent REAL NOT NULL,
                 reason TEXT NOT NULL,
                 timestamp DATETIME NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
         
-        # Model performance table
+        # Model performance table (user-specific)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS model_performance (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 appliance TEXT NOT NULL,
                 model_name TEXT NOT NULL,
                 accuracy REAL,
@@ -84,21 +138,24 @@ def init_database():
                 f1_score REAL,
                 training_samples INTEGER,
                 timestamp DATETIME NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
         
-        # Sessions table
+        # Sessions table (user-specific)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 appliance TEXT NOT NULL,
                 start_time DATETIME NOT NULL,
                 end_time DATETIME,
                 total_readings INTEGER DEFAULT 0,
                 total_anomalies INTEGER DEFAULT 0,
                 total_cutoffs INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
         
@@ -157,105 +214,224 @@ def init_database():
         
         print("✅ Database initialized successfully")
 
-def save_reading(appliance, power, timestamp, hour, day_of_week, is_anomaly=False, anomaly_score=None, deviation=None):
+# ============= User Management Functions =============
+
+def create_user(username, email, password_hash, full_name=None):
+    """Create a new user"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO users (username, email, password_hash, full_name)
+            VALUES (?, ?, ?, ?)
+        ''', (username, email, password_hash, full_name))
+        return cursor.lastrowid
+
+def get_user_by_username(username):
+    """Get user by username"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+def get_user_by_id(user_id):
+    """Get user by ID"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+def get_user_by_email(email):
+    """Get user by email"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+def update_last_login(user_id):
+    """Update user's last login time"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE users SET last_login = ? WHERE id = ?
+        ''', (datetime.now().isoformat(), user_id))
+
+def initialize_user_appliances(user_id):
+    """Initialize default appliances for a new user with zero patterns"""
+    default_appliances = [
+        ('Light Bulb', 10, 2, 'day_night'),
+        ('Refrigerator', 150, 20, 'constant'),
+        ('Laptop', 65, 15, 'work_hours'),
+        ('Air Conditioner', 1500, 100, 'peak_hours')
+    ]
+    
+    with get_db() as conn:
+        cursor = conn.cursor()
+        for name, base, variance, pattern in default_appliances:
+            cursor.execute('''
+                INSERT OR IGNORE INTO user_appliances 
+                (user_id, appliance_name, base_power, variance, pattern)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (user_id, name, base, variance, pattern))
+            
+            # Initialize zero patterns for all hours and days
+            for hour in range(24):
+                for day in range(7):
+                    cursor.execute('''
+                        INSERT OR IGNORE INTO user_hourly_patterns
+                        (user_id, appliance, hour, day_of_week, avg_power, min_power, max_power, reading_count)
+                        VALUES (?, ?, ?, ?, 0, 0, 0, 0)
+                    ''', (user_id, name, hour, day))
+
+def get_user_appliances(user_id):
+    """Get all appliances for a user"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM user_appliances WHERE user_id = ?
+        ''', (user_id,))
+        return [dict(row) for row in cursor.fetchall()]
+
+def save_reading(appliance, power, timestamp, hour, day_of_week, is_anomaly=False, anomaly_score=None, deviation=None, user_id=None):
     """Save a power reading to database"""
+    if user_id is None:
+        raise ValueError("user_id is required")
+    
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO readings (appliance, power_watts, timestamp, hour, day_of_week, 
+            INSERT INTO readings (user_id, appliance, power_watts, timestamp, hour, day_of_week, 
                                 is_anomaly, anomaly_score, deviation_percent)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (appliance, power, timestamp, hour, day_of_week, is_anomaly, anomaly_score, deviation))
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, appliance, power, timestamp, hour, day_of_week, is_anomaly, anomaly_score, deviation))
+        
+        # Update hourly patterns
+        cursor.execute('''
+            INSERT INTO user_hourly_patterns 
+            (user_id, appliance, hour, day_of_week, avg_power, min_power, max_power, reading_count, last_updated)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+            ON CONFLICT(user_id, appliance, hour, day_of_week) DO UPDATE SET
+                avg_power = ((avg_power * reading_count) + ?) / (reading_count + 1),
+                min_power = MIN(min_power, ?),
+                max_power = MAX(max_power, ?),
+                reading_count = reading_count + 1,
+                last_updated = ?
+        ''', (user_id, appliance, hour, day_of_week, power, power, power, datetime.now().isoformat(),
+              power, power, power, datetime.now().isoformat()))
+        
         return cursor.lastrowid
 
-def save_anomaly(appliance, power, expected_power, deviation, anomaly_score, severity, timestamp):
+def save_anomaly(appliance, power, expected_power, deviation, anomaly_score, severity, timestamp, user_id=None):
     """Save an anomaly detection to database"""
+    if user_id is None:
+        raise ValueError("user_id is required")
+    
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO anomalies (appliance, power_watts, expected_power, deviation_percent,
+            INSERT INTO anomalies (user_id, appliance, power_watts, expected_power, deviation_percent,
                                  anomaly_score, severity, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (appliance, power, expected_power, deviation, anomaly_score, severity, timestamp))
-        return cursor.lastrowid
-
-def save_cutoff(appliance, power, expected_power, deviation, reason, timestamp):
-    """Save a power cutoff event to database"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO cutoffs (appliance, power_watts, expected_power, deviation_percent,
-                               reason, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (appliance, power, expected_power, deviation, reason, timestamp))
-        return cursor.lastrowid
-
-def save_model_performance(appliance, model_name, accuracy, precision, recall, f1, training_samples, timestamp):
-    """Save model performance metrics"""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO model_performance (appliance, model_name, accuracy, precision_score,
-                                         recall, f1_score, training_samples, timestamp)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (appliance, model_name, accuracy, precision, recall, f1, training_samples, timestamp))
+        ''', (user_id, appliance, power, expected_power, deviation, anomaly_score, severity, timestamp))
         return cursor.lastrowid
 
-def get_readings(appliance, limit=100):
+def save_cutoff(appliance, power, expected_power, deviation, reason, timestamp, user_id=None):
+    """Save a power cutoff event to database"""
+    if user_id is None:
+        raise ValueError("user_id is required")
+    
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO cutoffs (user_id, appliance, power_watts, expected_power, deviation_percent,
+                               reason, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, appliance, power, expected_power, deviation, reason, timestamp))
+        return cursor.lastrowid
+
+def save_model_performance(appliance, model_name, accuracy, precision, recall, f1, training_samples, timestamp, user_id=None):
+    """Save model performance metrics"""
+    if user_id is None:
+        raise ValueError("user_id is required")
+    
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO model_performance (user_id, appliance, model_name, accuracy, precision_score,
+                                         recall, f1_score, training_samples, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, appliance, model_name, accuracy, precision, recall, f1, training_samples, timestamp))
+        return cursor.lastrowid
+
+def get_readings(appliance, limit=100, user_id=None):
     """Get recent readings for an appliance"""
+    if user_id is None:
+        raise ValueError("user_id is required")
+    
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM readings 
-            WHERE appliance = ? 
+            WHERE appliance = ? AND user_id = ?
             ORDER BY timestamp DESC 
             LIMIT ?
-        ''', (appliance, limit))
+        ''', (appliance, user_id, limit))
         return [dict(row) for row in cursor.fetchall()]
 
-def get_anomalies(appliance, limit=50):
+def get_anomalies(appliance, limit=50, user_id=None):
     """Get recent anomalies for an appliance"""
+    if user_id is None:
+        raise ValueError("user_id is required")
+    
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM anomalies 
-            WHERE appliance = ? 
+            WHERE appliance = ? AND user_id = ?
             ORDER BY timestamp DESC 
             LIMIT ?
-        ''', (appliance, limit))
+        ''', (appliance, user_id, limit))
         return [dict(row) for row in cursor.fetchall()]
 
-def get_cutoffs(appliance, limit=50):
+def get_cutoffs(appliance, limit=50, user_id=None):
     """Get recent cutoffs for an appliance"""
+    if user_id is None:
+        raise ValueError("user_id is required")
+    
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM cutoffs 
-            WHERE appliance = ? 
+            WHERE appliance = ? AND user_id = ?
             ORDER BY timestamp DESC 
             LIMIT ?
-        ''', (appliance, limit))
+        ''', (appliance, user_id, limit))
         return [dict(row) for row in cursor.fetchall()]
 
-def get_statistics(appliance):
+def get_statistics(appliance, user_id=None):
     """Get statistics for an appliance"""
+    if user_id is None:
+        raise ValueError("user_id is required")
+    
     with get_db() as conn:
         cursor = conn.cursor()
         
         # Total readings
-        cursor.execute('SELECT COUNT(*) as count FROM readings WHERE appliance = ?', (appliance,))
+        cursor.execute('SELECT COUNT(*) as count FROM readings WHERE appliance = ? AND user_id = ?', (appliance, user_id))
         total_readings = cursor.fetchone()['count']
         
         # Total anomalies
-        cursor.execute('SELECT COUNT(*) as count FROM anomalies WHERE appliance = ?', (appliance,))
+        cursor.execute('SELECT COUNT(*) as count FROM anomalies WHERE appliance = ? AND user_id = ?', (appliance, user_id))
         total_anomalies = cursor.fetchone()['count']
         
         # Total cutoffs
-        cursor.execute('SELECT COUNT(*) as count FROM cutoffs WHERE appliance = ?', (appliance,))
+        cursor.execute('SELECT COUNT(*) as count FROM cutoffs WHERE appliance = ? AND user_id = ?', (appliance, user_id))
         total_cutoffs = cursor.fetchone()['count']
         
         # Average power
-        cursor.execute('SELECT AVG(power_watts) as avg FROM readings WHERE appliance = ?', (appliance,))
+        cursor.execute('SELECT AVG(power_watts) as avg FROM readings WHERE appliance = ? AND user_id = ?', (appliance, user_id))
         avg_power = cursor.fetchone()['avg'] or 0
         
         return {
@@ -265,14 +441,28 @@ def get_statistics(appliance):
             'average_power': round(avg_power, 2)
         }
 
-def start_session(appliance):
-    """Start a new monitoring session"""
+def get_user_hourly_patterns(user_id, appliance):
+    """Get hourly patterns for a user's appliance"""
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO sessions (appliance, start_time)
-            VALUES (?, ?)
-        ''', (appliance, datetime.now().isoformat()))
+            SELECT * FROM user_hourly_patterns
+            WHERE user_id = ? AND appliance = ?
+            ORDER BY hour, day_of_week
+        ''', (user_id, appliance))
+        return [dict(row) for row in cursor.fetchall()]
+
+def start_session(appliance, user_id=None):
+    """Start a new monitoring session"""
+    if user_id is None:
+        raise ValueError("user_id is required")
+    
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO sessions (user_id, appliance, start_time)
+            VALUES (?, ?, ?)
+        ''', (user_id, appliance, datetime.now().isoformat()))
         return cursor.lastrowid
 
 def end_session(session_id, readings, anomalies, cutoffs):

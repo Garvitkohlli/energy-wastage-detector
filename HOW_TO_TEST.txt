@@ -1,0 +1,127 @@
+================================================================================
+                    HOW TO TEST PAGE-AWARE MONITORING
+================================================================================
+
+WHAT IS IT?
+-----------
+Your system now only generates data when you're viewing the dashboard.
+When you navigate away, it stops after 10 seconds (saves cloud costs!).
+
+
+QUICK TEST (2 MINUTES):
+-----------------------
+
+1. Start the app:
+   > python app_advanced.py
+
+2. Open browser: http://localhost:5000
+
+3. Login: demo / demo123
+
+4. Go to Dashboard → Click "Laptop" → Click "Start Monitoring"
+
+5. WATCH THE TERMINAL - You'll see:
+   "🚀 Monitoring thread started for User X - Laptop"
+   "Page-aware monitoring: ENABLED"
+
+6. Navigate away (click "Home" or close the tab)
+
+7. WATCH THE TERMINAL - After 10 seconds you'll see:
+   "⏸️  PAUSED: User X - Laptop"
+   "No activity detected. Data generation stopped."
+
+8. Go back to Dashboard → Click "Laptop" again
+
+9. WATCH THE TERMINAL - You'll see:
+   "▶️  RESUMED: User X - Laptop"
+   "User returned. Data generation resumed."
+
+✅ IF YOU SEE THESE MESSAGES, IT'S WORKING!
+
+
+AUTOMATED TEST:
+---------------
+
+Run this command:
+> python test_monitoring_simple.py
+
+Choose option 2 (Automated test)
+
+It will automatically:
+- Login
+- Start monitoring
+- Simulate viewing (active)
+- Simulate navigating away (paused)
+- Simulate returning (resumed)
+
+
+VISUAL MONITORING TEST:
+-----------------------
+
+Run this in a SEPARATE terminal while using the app:
+> python test_monitoring_simple.py
+
+Choose option 1 (Visual monitoring)
+
+You'll see real-time status updates showing when monitoring is
+active or paused.
+
+
+WHAT YOU SHOULD SEE:
+--------------------
+
+✅ WORKING:
+   - Terminal shows "PAUSED" when you navigate away
+   - Terminal shows "RESUMED" when you return
+   - Data generation stops when paused
+   - Data generation resumes when active
+
+❌ NOT WORKING:
+   - Never shows "PAUSED" message
+   - Keeps generating data even when away
+   - No status changes in terminal
+
+
+WHY THIS MATTERS:
+-----------------
+
+WITHOUT page-aware monitoring:
+   CPU: 80% (24/7)
+   Cost: $$$$ per month
+
+WITH page-aware monitoring:
+   CPU: 20% (only when viewing)
+   Cost: $ per month (75% savings!)
+
+
+TROUBLESHOOTING:
+----------------
+
+Q: Never shows "PAUSED"?
+A: Make sure you navigate AWAY from the appliance page.
+   Go to Home, Analytics, or any other page.
+
+Q: Takes longer than 10 seconds?
+A: Normal. The timeout starts from the LAST API call.
+   Wait up to 12 seconds.
+
+Q: Shows "PAUSED" immediately?
+A: You're not on the appliance detail page.
+   Go to Dashboard → Click on an appliance.
+
+
+NEED MORE HELP?
+---------------
+
+Read the detailed guide:
+> TEST_PAGE_AWARE.md
+
+Or check the full documentation:
+> CLOUD_DEPLOYMENT_GUIDE.md
+> ML_MODELS_EXPLAINED.md
+> QUICK_REFERENCE.md
+
+
+================================================================================
+                              READY TO TEST!
+================================================================================

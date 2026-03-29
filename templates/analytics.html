@@ -199,9 +199,15 @@ async function updateAnalytics() {
             return;
         }
         
-        // Get usage analysis
-        const analysisResponse = await fetch(`/api/usage_analysis/${selectedAppliance}`);
+        // Get usage analysis with cache busting
+        const timestamp = new Date().getTime();
+        const analysisResponse = await fetch(`/api/usage_analysis/${selectedAppliance}?t=${timestamp}`);
         const analysis = await analysisResponse.json();
+        
+        console.log('[DEBUG] Analysis response:', analysis);
+        console.log('[DEBUG] hourly_stats keys:', Object.keys(analysis.hourly_stats || {}));
+        console.log('[DEBUG] Sample hour 0:', analysis.hourly_stats['0'] || analysis.hourly_stats[0]);
+        console.log('[DEBUG] Sample hour 12:', analysis.hourly_stats['12'] || analysis.hourly_stats[12]);
         
         displayStats(history);
         displayRecommendation(analysis);
@@ -268,6 +274,11 @@ function displayRecommendation(analysis) {
 }
 
 function displayHourlyPattern(analysis) {
+    console.log('[DEBUG] displayHourlyPattern called with:', analysis);
+    console.log('[DEBUG] hourly_stats:', analysis.hourly_stats);
+    console.log('[DEBUG] hourly_stats type:', typeof analysis.hourly_stats);
+    console.log('[DEBUG] hourly_stats keys:', Object.keys(analysis.hourly_stats || {}));
+    
     const bestHour = analysis.best_cutoff_hour;
     const worstHour = analysis.worst_hour;
     const hourlyStats = analysis.hourly_stats;
@@ -277,6 +288,9 @@ function displayHourlyPattern(analysis) {
     const avgPower = allAvgs.reduce((a, b) => a + b, 0) / allAvgs.length;
     const lowThreshold = avgPower * 0.7;
     const highThreshold = avgPower * 1.3;
+    
+    console.log('[DEBUG] Average power:', avgPower);
+    console.log('[DEBUG] Hours with data:', allAvgs.length);
     
     let html = `
         <div class="card">
@@ -289,7 +303,13 @@ function displayHourlyPattern(analysis) {
     `;
     
     for (let hour = 0; hour < 24; hour++) {
-        const stats = hourlyStats[hour];
+        // Access with string key since JSON converts integer keys to strings
+        const stats = hourlyStats[hour.toString()] || hourlyStats[hour] || {avg: 0, min: 0, max: 0, count: 0};
+        
+        if (hour === 0 || hour === 12) {
+            console.log(`[DEBUG] Hour ${hour}:`, stats);
+        }
+        
         let boxClass = '';
         
         if (hour === bestHour && stats.count > 0) {
