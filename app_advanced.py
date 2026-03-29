@@ -423,6 +423,107 @@ def get_usage_analysis(appliance):
         'total_cutoffs': db_stats['total_cutoffs']
     })
 
+# ============= IoT ROUTES =============
+
+@app.route('/iot')
+def iot_dashboard():
+    """IoT Dashboard page"""
+    return render_template('iot_dashboard.html')
+
+@app.route('/api/iot/devices', methods=['GET'])
+def get_iot_devices():
+    """Get all IoT devices"""
+    devices = db.get_all_iot_devices()
+    return jsonify({'success': True, 'devices': devices})
+
+@app.route('/api/iot/device/<device_id>', methods=['GET'])
+def get_iot_device(device_id):
+    """Get specific IoT device"""
+    device = db.get_iot_device(device_id)
+    if device:
+        return jsonify({'success': True, 'device': device})
+    return jsonify({'success': False, 'message': 'Device not found'}), 404
+
+@app.route('/api/iot/device/register', methods=['POST'])
+def register_iot_device():
+    """Register a new IoT device"""
+    from flask import request
+    data = request.json
+    
+    try:
+        db.register_iot_device(
+            device_id=data['device_id'],
+            device_name=data['device_name'],
+            device_type=data['device_type'],
+            ip_address=data.get('ip_address'),
+            mac_address=data.get('mac_address'),
+            firmware_version=data.get('firmware_version')
+        )
+        return jsonify({'success': True, 'message': 'Device registered successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/iot/device/<device_id>/control', methods=['POST'])
+def control_iot_device(device_id):
+    """Send control command to IoT device"""
+    from flask import request
+    data = request.json
+    command = data.get('command')
+    
+    # Save command to database
+    command_id = db.save_iot_command(device_id, command)
+    
+    # Update device power state
+    power_state = 'on' if command == 'on' else 'off'
+    db.update_device_status(device_id, 'online', power_state=power_state)
+    
+    return jsonify({
+        'success': True, 
+        'message': f'Command {command} sent to device',
+        'command_id': command_id
+    })
+
+@app.route('/api/iot/device/<device_id>/readings', methods=['GET'])
+def get_iot_device_readings(device_id):
+    """Get readings for an IoT device"""
+    from flask import request
+    limit = int(request.args.get('limit', 100))
+    readings = db.get_iot_readings(device_id, limit)
+    return jsonify({'success': True, 'readings': readings})
+
+@app.route('/api/iot/device/<device_id>/reading', methods=['POST'])
+def save_iot_device_reading(device_id):
+    """Save a reading from an IoT device (called by IoT device)"""
+    from flask import request
+    data = request.json
+    
+    try:
+        reading_id = db.save_iot_reading(
+            device_id=device_id,
+            power=data['power'],
+            voltage=data.get('voltage'),
+            current=data.get('current'),
+            energy=data.get('energy'),
+            power_factor=data.get('power_factor'),
+            temperature=data.get('temperature'),
+            timestamp=data.get('timestamp')
+        )
+        
+        # Update device status to online
+        db.update_device_status(device_id, 'online', current_power=data['power'])
+        
+        return jsonify({'success': True, 'reading_id': reading_id})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/iot/device/<device_id>', methods=['DELETE'])
+def delete_iot_device(device_id):
+    """Delete an IoT device"""
+    success = db.delete_iot_device(device_id)
+    if success:
+        return jsonify({'success': True, 'message': 'Device deleted successfully'})
+    return jsonify({'success': False, 'message': 'Device not found'}), 404
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print("\n" + "="*60)

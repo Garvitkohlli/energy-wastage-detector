@@ -102,6 +102,59 @@ def init_database():
             )
         ''')
         
+        # IoT Devices table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS iot_devices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id TEXT UNIQUE NOT NULL,
+                device_name TEXT NOT NULL,
+                device_type TEXT NOT NULL,
+                ip_address TEXT,
+                mac_address TEXT,
+                status TEXT DEFAULT 'offline',
+                last_seen DATETIME,
+                power_state TEXT DEFAULT 'off',
+                current_power REAL DEFAULT 0,
+                total_energy REAL DEFAULT 0,
+                firmware_version TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # IoT Readings table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS iot_readings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id TEXT NOT NULL,
+                voltage REAL,
+                current REAL,
+                power REAL NOT NULL,
+                energy REAL,
+                power_factor REAL,
+                temperature REAL,
+                timestamp DATETIME NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (device_id) REFERENCES iot_devices(device_id)
+            )
+        ''')
+        
+        # IoT Commands table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS iot_commands (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id TEXT NOT NULL,
+                command TEXT NOT NULL,
+                parameters TEXT,
+                status TEXT DEFAULT 'pending',
+                response TEXT,
+                sent_at DATETIME NOT NULL,
+                completed_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (device_id) REFERENCES iot_devices(device_id)
+            )
+        ''')
+        
         print("✅ Database initialized successfully")
 
 def save_reading(appliance, power, timestamp, hour, day_of_week, is_anomaly=False, anomaly_score=None, deviation=None):
@@ -234,3 +287,121 @@ def end_session(session_id, readings, anomalies, cutoffs):
 
 if __name__ == '__main__':
     init_database()
+
+
+# ============= IoT Device Functions =============
+
+def register_iot_device(device_id, device_name, device_type, ip_address=None, mac_address=None, firmware_version=None):
+    """Register a new IoT device"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO iot_devices 
+            (device_id, device_name, device_type, ip_address, mac_address, firmware_version, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (device_id, device_name, device_type, ip_address, mac_address, firmware_version, datetime.now().isoformat()))
+        return cursor.lastrowid
+
+def update_device_status(device_id, status, power_state=None, current_power=None):
+    """Update IoT device status"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE iot_devices 
+            SET status = ?, power_state = COALESCE(?, power_state), 
+                current_power = COALESCE(?, current_power),
+                last_seen = ?, updated_at = ?
+            WHERE device_id = ?
+        ''', (status, power_state, current_power, datetime.now().isoformat(), datetime.now().isoformat(), device_id))
+
+def get_all_iot_devices():
+    """Get all registered IoT devices"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM iot_devices ORDER BY device_name')
+        return [dict(row) for row in cursor.fetchall()]
+
+def get_iot_device(device_id):
+    """Get specific IoT device"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM iot_devices WHERE device_id = ?', (device_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+def save_iot_reading(device_id, power, voltage=None, current=None, energy=None, power_factor=None, temperature=None, timestamp=None):
+    """Save IoT device reading"""
+    if timestamp is None:
+        timestamp = datetime.now().isoformat()
+    
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO iot_readings 
+            (device_id, voltage, current, power, energy, power_factor, temperature, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (device_id, voltage, current, power, energy, power_factor, temperature, timestamp))
+        
+        # Update device current power
+        cursor.execute('''
+            UPDATE iot_devices 
+            SET current_power = ?, total_energy = COALESCE(?, total_energy), 
+                last_seen = ?, updated_at = ?
+            WHERE device_id = ?
+        ''', (power, energy, timestamp, datetime.now().isoformat(), device_id))
+        
+        return cursor.lastrowid
+
+def get_iot_readings(device_id, limit=100):
+    """Get recent readings for an IoT device"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM iot_readings 
+            WHERE device_id = ? 
+            ORDER BY timestamp DESC 
+            LIMIT ?
+        ''', (device_id, limit))
+        return [dict(row) for row in cursor.fetchall()]
+
+def save_iot_command(device_id, command, parameters=None):
+    """Save IoT command"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        params_json = json.dumps(parameters) if parameters else None
+        cursor.execute('''
+            INSERT INTO iot_commands (device_id, command, parameters, sent_at)
+            VALUES (?, ?, ?, ?)
+        ''', (device_id, command, params_json, datetime.now().isoformat()))
+        return cursor.lastrowid
+
+def update_command_status(command_id, status, response=None):
+    """Update command status"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE iot_commands 
+            SET status = ?, response = ?, completed_at = ?
+            WHERE id = ?
+        ''', (status, response, datetime.now().isoformat(), command_id))
+
+def get_device_commands(device_id, limit=50):
+    """Get recent commands for a device"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM iot_commands 
+            WHERE device_id = ? 
+            ORDER BY sent_at DESC 
+            LIMIT ?
+        ''', (device_id, limit))
+        return [dict(row) for row in cursor.fetchall()]
+
+def delete_iot_device(device_id):
+    """Delete an IoT device and its data"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM iot_readings WHERE device_id = ?', (device_id,))
+        cursor.execute('DELETE FROM iot_commands WHERE device_id = ?', (device_id,))
+        cursor.execute('DELETE FROM iot_devices WHERE device_id = ?', (device_id,))
+        return cursor.rowcount > 0

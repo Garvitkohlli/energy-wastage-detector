@@ -4,39 +4,39 @@
 
 {% block content %}
 <div class="card">
-    <h1>🏠 Automatic Energy Wastage Detection</h1>
-    <p style="font-size: 1.1rem; color: #666; margin-bottom: 2rem;">
+    <h1>Automatic Energy Wastage Detection</h1>
+    <p style="font-size: 1.1rem; margin-bottom: 2rem;" class="text-muted">
         AI-powered system that automatically monitors appliances and recommends the best time to cut power based on usage patterns.
     </p>
     
     <div class="grid">
         <div class="stat-card">
-            <h3>🔄</h3>
+            <h3>AUTO</h3>
             <p>Auto Monitoring</p>
         </div>
         <div class="stat-card">
-            <h3>🤖</h3>
+            <h3>ML</h3>
             <p>ML Analysis</p>
         </div>
         <div class="stat-card">
-            <h3>⏰</h3>
+            <h3>TIME</h3>
             <p>Time-Based Insights</p>
         </div>
         <div class="stat-card">
-            <h3>💡</h3>
+            <h3>SMART</h3>
             <p>Smart Cutoff</p>
         </div>
     </div>
 </div>
 
 <div class="card">
-    <h2>✅ Pre-loaded Appliances</h2>
+    <h2>Pre-loaded Appliances</h2>
     <div id="appliancesArea" style="margin-top: 1rem;"></div>
 </div>
 
 <div class="card">
-    <h2>🚀 How It Works</h2>
-    <ol style="line-height: 2.5; color: #555; font-size: 1.1rem;">
+    <h2>How It Works</h2>
+    <ol style="line-height: 2.5; font-size: 1.1rem;" class="text-secondary">
         <li><strong>Go to Dashboard</strong> - Select an appliance to monitor</li>
         <li><strong>Start Auto-Monitoring</strong> - System generates random readings every 2 seconds</li>
         <li><strong>ML Analyzes Patterns</strong> - Learns usage patterns by hour of day</li>
@@ -46,11 +46,11 @@
 </div>
 
 <div class="card">
-    <h2>🎯 What You'll See</h2>
-    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
-        <h3 style="color: #667eea;">💡 ML RECOMMENDATION: BEST TIME TO CUT POWER</h3>
-        <h1 style="font-size: 2.5rem; color: #333; margin: 1rem 0;">3 AM (03:00)</h1>
-        <p style="font-size: 1.1rem; color: #555;">
+    <h2>What You'll See</h2>
+    <div style="background: var(--bg-darker); padding: 1.5rem; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border);">
+        <h3 style="color: var(--primary-light);">ML RECOMMENDATION: BEST TIME TO CUT POWER</h3>
+        <h1 style="font-size: 2.5rem; margin: 1rem 0;">3 AM (03:00)</h1>
+        <p style="font-size: 1.1rem;" class="text-secondary">
             <strong>Average Power at this time:</strong> 2.5W<br>
             <strong>Reason:</strong> This is when Light Bulb uses the LEAST power<br>
             <strong>ML Decision:</strong> Optimal time for power cutoff with minimal impact
@@ -59,36 +59,36 @@
 </div>
 
 <div class="card">
-    <h2>📊 Usage Patterns</h2>
-    <p style="color: #666; margin-bottom: 1rem;">
+    <h2>Usage Patterns</h2>
+    <p class="text-muted" style="margin-bottom: 1rem;">
         System analyzes 24-hour patterns to find optimal cutoff times:
     </p>
     <table style="width: 100%; border-collapse: collapse;">
         <thead>
-            <tr style="background: #f5f5f5;">
+            <tr>
                 <th style="padding: 1rem; text-align: left;">Appliance</th>
                 <th style="padding: 1rem; text-align: center;">Usage Pattern</th>
                 <th style="padding: 1rem; text-align: center;">Best Cutoff Time</th>
             </tr>
         </thead>
         <tbody>
-            <tr style="border-bottom: 1px solid #ddd;">
-                <td style="padding: 1rem;">💡 Light Bulb</td>
+            <tr>
+                <td style="padding: 1rem;">Light Bulb</td>
                 <td style="padding: 1rem; text-align: center;">High at night, Low during day</td>
                 <td style="padding: 1rem; text-align: center;">12 PM - 5 PM</td>
             </tr>
-            <tr style="border-bottom: 1px solid #ddd;">
-                <td style="padding: 1rem;">🧊 Refrigerator</td>
+            <tr>
+                <td style="padding: 1rem;">Refrigerator</td>
                 <td style="padding: 1rem; text-align: center;">Constant usage</td>
                 <td style="padding: 1rem; text-align: center;">Any time (minimal variation)</td>
             </tr>
-            <tr style="border-bottom: 1px solid #ddd;">
-                <td style="padding: 1rem;">💻 Laptop</td>
+            <tr>
+                <td style="padding: 1rem;">Laptop</td>
                 <td style="padding: 1rem; text-align: center;">High during work hours</td>
                 <td style="padding: 1rem; text-align: center;">11 PM - 8 AM</td>
             </tr>
             <tr>
-                <td style="padding: 1rem;">❄️ Air Conditioner</td>
+                <td style="padding: 1rem;">Air Conditioner</td>
                 <td style="padding: 1rem; text-align: center;">High during hot hours</td>
                 <td style="padding: 1rem; text-align: center;">12 AM - 6 AM</td>
             </tr>
@@ -96,15 +96,15 @@
     </table>
 </div>
 
-<div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-    <h2 style="color: white;">🎯 Key Features</h2>
-    <ul style="line-height: 2; font-size: 1.1rem;">
-        <li>✅ <strong>No Manual Input</strong> - System generates readings automatically</li>
-        <li>✅ <strong>Realistic Patterns</strong> - Simulates actual usage by time of day</li>
-        <li>✅ <strong>ML Analysis</strong> - Learns patterns and detects anomalies</li>
-        <li>✅ <strong>Time-Based Insights</strong> - Shows usage by hour (24-hour view)</li>
-        <li>✅ <strong>Smart Recommendations</strong> - Tells you WHEN to cut power</li>
-        <li>✅ <strong>Minimal Impact</strong> - Cutoff at lowest usage times</li>
+<div class="card" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border);">
+    <h2 style="color: var(--text-primary);">Key Features</h2>
+    <ul style="line-height: 2; font-size: 1.1rem; color: var(--text-secondary);">
+        <li><strong>No Manual Input</strong> - System generates readings automatically</li>
+        <li><strong>Realistic Patterns</strong> - Simulates actual usage by time of day</li>
+        <li><strong>ML Analysis</strong> - Learns patterns and detects anomalies</li>
+        <li><strong>Time-Based Insights</strong> - Shows usage by hour (24-hour view)</li>
+        <li><strong>Smart Recommendations</strong> - Tells you WHEN to cut power</li>
+        <li><strong>Minimal Impact</strong> - Cutoff at lowest usage times</li>
     </ul>
 </div>
 
@@ -121,10 +121,10 @@ async function loadAppliances() {
             html += `
                 <div class="alert ${app.is_trained ? 'alert-success' : 'alert-warning'}">
                     <strong>${app.name}</strong><br>
-                    ML Model: ${app.is_trained ? '✅ Trained' : '⚠️ Not Trained'}<br>
+                    ML Model: ${app.is_trained ? 'Trained' : 'Not Trained'}<br>
                     Data: ${app.data_points} samples<br>
                     Average: ${app.avg_power}W<br>
-                    Status: ${app.monitoring ? '🔄 Monitoring' : '⏸️ Stopped'}
+                    Status: ${app.monitoring ? 'Monitoring' : 'Stopped'}
                 </div>
             `;
         });

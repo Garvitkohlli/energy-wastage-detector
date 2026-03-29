@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="card">
-    <h1>📈 Real-Time Energy Analytics</h1>
-    <p style="color: #666;">Live 24-hour usage patterns and ML insights</p>
+    <h1>Real-Time Energy Analytics</h1>
+    <p class="text-muted">Live 24-hour usage patterns and ML insights</p>
 </div>
 
 <div class="card">
@@ -30,43 +30,63 @@
 }
 
 .stat-box {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: var(--bg-card);
+    color: var(--text-primary);
     padding: 1.5rem;
     border-radius: 10px;
     text-align: center;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .stat-box h3 {
     font-size: 2rem;
     margin: 0;
+    color: var(--primary-light);
 }
 
 .stat-box p {
     margin: 0.5rem 0 0 0;
     opacity: 0.9;
+    color: var(--text-secondary);
 }
 
 .chart-box {
-    background: white;
+    background: var(--bg-card);
     padding: 2rem;
     border-radius: 10px;
     margin: 1rem 0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+}
+
+.chart-box h2 {
+    color: var(--text-primary);
 }
 
 .recommendation-box {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
+    background: var(--bg-card);
+    color: var(--text-primary);
     padding: 2rem;
     border-radius: 10px;
     margin: 1rem 0;
     text-align: center;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .recommendation-box h1 {
     font-size: 3rem;
     margin: 1rem 0;
+    color: var(--primary-light);
+}
+
+.recommendation-box h2 {
+    color: var(--text-primary);
+}
+
+.recommendation-box p {
+    color: var(--text-secondary);
 }
 
 .hourly-grid {
@@ -77,42 +97,49 @@
 }
 
 .hour-box {
-    background: #f0f0f0;
+    background: var(--bg-darker);
     padding: 1rem;
     border-radius: 8px;
     text-align: center;
     transition: all 0.3s;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
 }
 
 .hour-box.lowest {
-    background: #d4edda;
+    background: rgba(16, 185, 129, 0.15);
     border: 3px solid #28a745;
     font-weight: bold;
     transform: scale(1.05);
 }
 
 .hour-box.highest {
-    background: #f8d7da;
+    background: rgba(239, 68, 68, 0.15);
     border: 3px solid #dc3545;
     font-weight: bold;
 }
 
 .hour-box.medium {
-    background: #fff3cd;
+    background: rgba(245, 158, 11, 0.15);
     border: 2px solid #ffc107;
 }
 
 .insight-card {
-    background: #f8f9fa;
+    background: var(--bg-card);
     border-left: 4px solid #667eea;
     padding: 1.5rem;
     margin: 1rem 0;
     border-radius: 5px;
+    border: 1px solid var(--border);
 }
 
 .insight-card h3 {
     margin-top: 0;
-    color: #333;
+    color: var(--text-primary);
+}
+
+.insight-card p {
+    color: var(--text-secondary);
 }
 </style>
 
@@ -133,7 +160,7 @@ async function loadAppliances() {
     appliances.forEach(app => {
         const option = document.createElement('option');
         option.value = app.name;
-        option.textContent = `${app.name} (${app.monitoring ? '🔄 Live' : '⏸️ Stopped'})`;
+        option.textContent = `${app.name} (${app.monitoring ? 'Live' : 'Stopped'})`;
         select.appendChild(option);
     });
 }
@@ -196,7 +223,7 @@ function displayStats(history) {
     
     const html = `
         <div class="card">
-            <h2>📊 Live Statistics</h2>
+            <h2>Live Statistics</h2>
             <div class="stat-grid">
                 <div class="stat-box">
                     <h3>${history.length}</h3>
@@ -227,7 +254,7 @@ function displayRecommendation(analysis) {
     
     const html = `
         <div class="recommendation-box">
-            <h2>💡 ML RECOMMENDATION: BEST TIME TO CUT POWER</h2>
+            <h2>ML RECOMMENDATION: BEST TIME TO CUT POWER</h2>
             <h1>${formatHour(bestHour)}</h1>
             <p style="font-size: 1.2rem; margin-top: 1rem;">
                 <strong>Average Power:</strong> ${bestAvg}W<br>
@@ -253,8 +280,8 @@ function displayHourlyPattern(analysis) {
     
     let html = `
         <div class="card">
-            <h2>🕐 24-Hour Usage Pattern (Live Data)</h2>
-            <p style="color: #666; margin-bottom: 1rem;">
+            <h2>24-Hour Usage Pattern (Live Data)</h2>
+            <p class="text-muted" style="margin-bottom: 1rem;">
                 Updates every 3 seconds. Green = Best cutoff time, Red = Peak usage, Yellow = Medium usage
             </p>
             
@@ -280,8 +307,8 @@ function displayHourlyPattern(analysis) {
                 <strong style="font-size: 1.1rem;">${formatHour(hour)}</strong><br>
                 <span style="font-size: 1rem;">${displayText}</span><br>
                 <small style="color: #666;">${stats.count} readings</small>
-                ${hour === bestHour && stats.count > 0 ? '<br><strong style="color: #28a745;">✅ BEST</strong>' : ''}
-                ${hour === worstHour && stats.count > 0 ? '<br><strong style="color: #dc3545;">🔴 PEAK</strong>' : ''}
+                ${hour === bestHour && stats.count > 0 ? '<br><strong style="color: #28a745;">BEST</strong>' : ''}
+                ${hour === worstHour && stats.count > 0 ? '<br><strong style="color: #dc3545;">PEAK</strong>' : ''}
             </div>
         `;
     }
@@ -312,12 +339,12 @@ function displayCharts(history, analysis) {
     
     let html = `
         <div class="chart-box">
-            <h2>📊 24-Hour Power Consumption Pattern</h2>
+            <h2>24-Hour Power Consumption Pattern</h2>
             <canvas id="hourlyChart"></canvas>
         </div>
         
         <div class="chart-box">
-            <h2>⚡ Recent Power Readings</h2>
+            <h2>Recent Power Readings</h2>
             <canvas id="powerChart"></canvas>
         </div>
     `;
@@ -429,12 +456,12 @@ function displayInsights(history, analysis) {
     const bestHour = analysis.best_cutoff_hour;
     const worstHour = analysis.worst_hour;
     
-    let html = '<div class="card"><h2>🤖 ML Insights</h2>';
+    let html = '<div class="card"><h2>ML Insights</h2>';
     
     // Best time recommendation
     html += `
         <div class="insight-card" style="border-left-color: #28a745;">
-            <h3>✅ Optimal Power Cutoff Time</h3>
+            <h3>Optimal Power Cutoff Time</h3>
             <p><strong>Recommended Time:</strong> ${formatHour(bestHour)} (${bestHour}:00)</p>
             <p><strong>Average Power:</strong> ${analysis.best_cutoff_avg}W</p>
             <p><strong>ML Decision:</strong> This hour shows the lowest power consumption based on ${analysis.total_readings} readings</p>
@@ -445,7 +472,7 @@ function displayInsights(history, analysis) {
     // Peak usage warning
     html += `
         <div class="insight-card" style="border-left-color: #dc3545;">
-            <h3>⚠️ Peak Usage Time</h3>
+            <h3>Peak Usage Time</h3>
             <p><strong>Peak Hour:</strong> ${formatHour(worstHour)} (${worstHour}:00)</p>
             <p><strong>Average Power:</strong> ${analysis.worst_hour_avg}W</p>
             <p><strong>ML Analysis:</strong> Highest power consumption detected at this hour</p>
@@ -458,7 +485,7 @@ function displayInsights(history, analysis) {
     if (cvPercent < 20) {
         html += `
             <div class="insight-card" style="border-left-color: #28a745;">
-                <h3>✅ Stable Usage Pattern</h3>
+                <h3>Stable Usage Pattern</h3>
                 <p><strong>Variability:</strong> ${cvPercent}% (Low)</p>
                 <p><strong>ML Analysis:</strong> Consistent power consumption detected</p>
                 <p><strong>Confidence:</strong> High prediction accuracy due to stable patterns</p>
@@ -467,7 +494,7 @@ function displayInsights(history, analysis) {
     } else {
         html += `
             <div class="insight-card" style="border-left-color: #ffc107;">
-                <h3>⚠️ Variable Usage Pattern</h3>
+                <h3>Variable Usage Pattern</h3>
                 <p><strong>Variability:</strong> ${cvPercent}% (High)</p>
                 <p><strong>ML Analysis:</strong> Irregular power consumption patterns</p>
                 <p><strong>Recommendation:</strong> Continue monitoring for better pattern recognition</p>
@@ -481,7 +508,7 @@ function displayInsights(history, analysis) {
     
     html += `
         <div class="insight-card" style="border-left-color: #17a2b8;">
-            <h3>💰 Potential Savings</h3>
+            <h3>Potential Savings</h3>
             <p><strong>Peak vs Optimal:</strong> ${(analysis.worst_hour_avg - analysis.best_cutoff_avg).toFixed(1)}W difference</p>
             <p><strong>Monthly Savings:</strong> ${savingsKwh} kWh (~$${savingsCost})</p>
             <p><strong>Strategy:</strong> Schedule operations during ${formatHour(bestHour)} for maximum efficiency</p>

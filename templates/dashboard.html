@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="card">
-    <h1>🔄 Real-Time Monitoring Dashboard</h1>
-    <p style="color: #666;">Complete monitoring with live charts, ML analysis, and detailed statistics</p>
+    <h1>Real-Time Monitoring Dashboard</h1>
+    <p class="text-muted">Complete monitoring with live charts, ML analysis, and detailed statistics</p>
 </div>
 
 <div class="card">
@@ -17,12 +17,12 @@
 </div>
 
 <div class="card">
-    <h2>🎮 Controls</h2>
-    <button onclick="startMonitoring()" class="btn" style="background: #28a745; font-size: 1.2rem; padding: 1rem 2rem; margin-right: 1rem;">
-        ▶️ Start Monitoring
+    <h2>Controls</h2>
+    <button onclick="startMonitoring()" class="btn btn-success" style="font-size: 1.2rem; padding: 1rem 2rem; margin-right: 1rem;">
+        Start Monitoring
     </button>
-    <button onclick="stopMonitoring()" class="btn" style="background: #dc3545; font-size: 1.2rem; padding: 1rem 2rem;">
-        ⏹️ Stop Monitoring
+    <button onclick="stopMonitoring()" class="btn btn-danger" style="font-size: 1.2rem; padding: 1rem 2rem;">
+        Stop Monitoring
     </button>
 </div>
 
@@ -62,7 +62,7 @@ async function loadAppliances() {
         appliances.forEach(app => {
             const option = document.createElement('option');
             option.value = app.name;
-            option.textContent = `${app.name} - ${app.avg_power}W (${app.monitoring ? '🔄 Active' : '⏸️ Stopped'})`;
+            option.textContent = `${app.name} - ${app.avg_power}W (${app.monitoring ? 'Active' : 'Stopped'})`;
             select.appendChild(option);
         });
     } catch (error) {
@@ -156,12 +156,11 @@ async function updateStatus() {
 
 function displayStatus(status) {
     let statusClass = status.should_cutoff ? 'danger' : status.is_anomaly ? 'warning' : 'success';
-    let statusIcon = status.should_cutoff ? '🔴' : status.is_anomaly ? '⚠️' : '✅';
     let statusText = status.should_cutoff ? 'CRITICAL - CUTOFF REQUIRED' : status.is_anomaly ? 'ANOMALY DETECTED' : 'NORMAL OPERATION';
     
     const html = `
         <div class="card" style="border-left: 5px solid ${status.should_cutoff ? '#dc3545' : status.is_anomaly ? '#ffc107' : '#28a745'};">
-            <h2>${statusIcon} ${statusText}</h2>
+            <h2>${statusText}</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
                 <div class="stat-card">
                     <h3>${status.current_power.toFixed(1)}W</h3>
@@ -171,8 +170,8 @@ function displayStatus(status) {
                     <h3>${status.average_power}W</h3>
                     <p>Average Power</p>
                 </div>
-                <div class="stat-card" style="background: ${status.deviation > 0 ? 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' : 'linear-gradient(135deg, #28a745 0%, #218838 100%)'};">
-                    <h3>${status.deviation > 0 ? '+' : ''}${status.deviation}%</h3>
+                <div class="stat-card" style="background: ${status.deviation > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}; border: 1px solid ${status.deviation > 0 ? '#dc3545' : '#28a745'};">
+                    <h3 style="color: ${status.deviation > 0 ? '#fca5a5' : '#6ee7b7'};">${status.deviation > 0 ? '+' : ''}${status.deviation}%</h3>
                     <p>Deviation</p>
                 </div>
                 <div class="stat-card">
@@ -181,7 +180,7 @@ function displayStatus(status) {
                 </div>
             </div>
             <div class="alert alert-${statusClass}" style="margin-top: 1rem;">
-                <strong>🤖 ML Decision:</strong> ${status.should_cutoff ? 'Immediate power cutoff recommended!' : status.is_anomaly ? 'Enhanced monitoring activated' : 'Continue normal operation'}
+                <strong>ML Decision:</strong> ${status.should_cutoff ? 'Immediate power cutoff recommended!' : status.is_anomaly ? 'Enhanced monitoring activated' : 'Continue normal operation'}
                 ${status.model_type ? `<br><strong>Model:</strong> ${status.model_type}` : ''}
             </div>
         </div>
@@ -193,23 +192,23 @@ function displayStatus(status) {
     if (status.session_readings !== undefined) {
         const statsHtml = `
             <div class="card">
-                <h2>📊 Session Statistics</h2>
+                <h2>Session Statistics</h2>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
-                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #667eea;">
+                    <div style="background: var(--bg-darker); padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #667eea;">
                         <h3 style="color: #667eea; margin: 0;">${status.session_readings}</h3>
-                        <p style="margin: 0.5rem 0 0 0; color: #666;">Session Readings</p>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary);">Session Readings</p>
                     </div>
-                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #ffc107;">
+                    <div style="background: var(--bg-darker); padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #ffc107;">
                         <h3 style="color: #ffc107; margin: 0;">${status.session_anomalies}</h3>
-                        <p style="margin: 0.5rem 0 0 0; color: #666;">Anomalies Detected</p>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary);">Anomalies Detected</p>
                     </div>
-                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #dc3545;">
+                    <div style="background: var(--bg-darker); padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #dc3545;">
                         <h3 style="color: #dc3545; margin: 0;">${status.session_cutoffs}</h3>
-                        <p style="margin: 0.5rem 0 0 0; color: #666;">Cutoffs Triggered</p>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary);">Cutoffs Triggered</p>
                     </div>
-                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #28a745;">
+                    <div style="background: var(--bg-darker); padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #28a745;">
                         <h3 style="color: #28a745; margin: 0;">${((status.session_readings - status.session_anomalies) / status.session_readings * 100).toFixed(1)}%</h3>
-                        <p style="margin: 0.5rem 0 0 0; color: #666;">Normal Rate</p>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary);">Normal Rate</p>
                     </div>
                 </div>
             </div>
@@ -221,12 +220,12 @@ function displayStatus(status) {
 function displayAnalysis(analysis) {
     const html = `
         <div class="card">
-            <h2>💡 ML Recommendation: Best Time to Cut Power</h2>
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; text-align: center;">
-                <h1 style="font-size: 3rem; margin: 0; color: white; -webkit-text-fill-color: white;">
+            <h2>ML Recommendation: Best Time to Cut Power</h2>
+            <div style="background: var(--bg-card); color: var(--text-primary); padding: 2rem; border-radius: 12px; text-align: center; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <h1 style="font-size: 3rem; margin: 0; color: var(--primary-light);">
                     ${formatHour(analysis.best_cutoff_hour)}
                 </h1>
-                <p style="font-size: 1.2rem; margin-top: 1rem; opacity: 0.95;">
+                <p style="font-size: 1.2rem; margin-top: 1rem; color: var(--text-secondary);">
                     <strong>Average Power:</strong> ${analysis.best_cutoff_avg}W<br>
                     <strong>Peak Time:</strong> ${formatHour(analysis.worst_hour)} (${analysis.worst_hour_avg}W)<br>
                     <strong>Power Difference:</strong> ${(analysis.worst_hour_avg - analysis.best_cutoff_avg).toFixed(1)}W
@@ -235,8 +234,8 @@ function displayAnalysis(analysis) {
         </div>
         
         <div class="card">
-            <h2>🕐 24-Hour Usage Pattern (Live Updates)</h2>
-            <p style="color: #666; margin-bottom: 1rem;">
+            <h2>24-Hour Usage Pattern (Live Updates)</h2>
+            <p class="text-muted" style="margin-bottom: 1rem;">
                 Green = Best cutoff time | Red = Peak usage | Updates every 2 seconds
             </p>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.5rem;">
@@ -255,12 +254,12 @@ function generateHourlyGrid(analysis) {
     for (let hour = 0; hour < 24; hour++) {
         const stats = analysis.hourly_stats[hour];
         let boxClass = '';
-        let boxStyle = 'background: #f0f0f0; padding: 1rem; border-radius: 8px; text-align: center; transition: all 0.3s;';
+        let boxStyle = 'background: var(--bg-darker); padding: 1rem; border-radius: 8px; text-align: center; transition: all 0.3s; border: 1px solid var(--border); color: var(--text-primary);';
         
         if (hour === bestHour && stats.count > 0) {
-            boxStyle = 'background: #d4edda; padding: 1rem; border-radius: 8px; text-align: center; border: 3px solid #28a745; font-weight: bold; transform: scale(1.05); box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);';
+            boxStyle = 'background: rgba(16, 185, 129, 0.15); padding: 1rem; border-radius: 8px; text-align: center; border: 3px solid #28a745; font-weight: bold; transform: scale(1.05); box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3); color: var(--text-primary);';
         } else if (hour === worstHour && stats.count > 0) {
-            boxStyle = 'background: #f8d7da; padding: 1rem; border-radius: 8px; text-align: center; border: 3px solid #dc3545; font-weight: bold; transform: scale(1.05); box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);';
+            boxStyle = 'background: rgba(239, 68, 68, 0.15); padding: 1rem; border-radius: 8px; text-align: center; border: 3px solid #dc3545; font-weight: bold; transform: scale(1.05); box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3); color: var(--text-primary);';
         }
         
         const displayText = stats.count > 0 ? `${stats.avg.toFixed(1)}W` : 'No data';
@@ -269,9 +268,9 @@ function generateHourlyGrid(analysis) {
             <div style="${boxStyle}">
                 <strong style="font-size: 1.1rem;">${formatHour(hour)}</strong><br>
                 <span style="font-size: 1rem;">${displayText}</span><br>
-                <small style="color: #666;">${stats.count} readings</small>
-                ${hour === bestHour && stats.count > 0 ? '<br><strong style="color: #28a745;">✅ BEST</strong>' : ''}
-                ${hour === worstHour && stats.count > 0 ? '<br><strong style="color: #dc3545;">🔴 PEAK</strong>' : ''}
+                <small class="text-muted">${stats.count} readings</small>
+                ${hour === bestHour && stats.count > 0 ? '<br><strong style="color: #28a745;">BEST</strong>' : ''}
+                ${hour === worstHour && stats.count > 0 ? '<br><strong style="color: #dc3545;">PEAK</strong>' : ''}
             </div>
         `;
     }
@@ -290,7 +289,7 @@ function displayCharts(history, analysis) {
     
     let chartHtml = `
         <div class="card">
-            <h2>⚡ Real-Time Power Consumption</h2>
+            <h2>Real-Time Power Consumption</h2>
             <canvas id="realtimeChart"></canvas>
         </div>
     `;
@@ -299,7 +298,7 @@ function displayCharts(history, analysis) {
     if (analysis) {
         chartHtml += `
             <div class="card">
-                <h2>📊 24-Hour Usage Pattern</h2>
+                <h2>24-Hour Usage Pattern</h2>
                 <canvas id="patternChart"></canvas>
             </div>
         `;
@@ -412,16 +411,16 @@ function displayTables(history) {
     
     let html = `
         <div class="card">
-            <h2>📋 Recent Readings (Last 20)</h2>
+            <h2>Recent Readings (Last 20)</h2>
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr style="background: #f5f5f5;">
-                            <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #ddd;">Time</th>
-                            <th style="padding: 0.75rem; text-align: right; border-bottom: 2px solid #ddd;">Power (W)</th>
-                            <th style="padding: 0.75rem; text-align: center; border-bottom: 2px solid #ddd;">Hour</th>
-                            <th style="padding: 0.75rem; text-align: center; border-bottom: 2px solid #ddd;">Status</th>
-                            <th style="padding: 0.75rem; text-align: right; border-bottom: 2px solid #ddd;">Deviation</th>
+                        <tr style="background: var(--bg-darker);">
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--border); color: var(--text-primary);">Time</th>
+                            <th style="padding: 0.75rem; text-align: right; border-bottom: 2px solid var(--border); color: var(--text-primary);">Power (W)</th>
+                            <th style="padding: 0.75rem; text-align: center; border-bottom: 2px solid var(--border); color: var(--text-primary);">Hour</th>
+                            <th style="padding: 0.75rem; text-align: center; border-bottom: 2px solid var(--border); color: var(--text-primary);">Status</th>
+                            <th style="padding: 0.75rem; text-align: right; border-bottom: 2px solid var(--border); color: var(--text-primary);">Deviation</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -434,12 +433,12 @@ function displayTables(history) {
         const deviation = reading.deviation_percent || 0;
         
         html += `
-            <tr style="border-bottom: 1px solid #ddd;">
-                <td style="padding: 0.75rem;">${reading.timestamp}</td>
-                <td style="padding: 0.75rem; text-align: right; font-weight: bold;">${reading.power_watts.toFixed(2)}</td>
-                <td style="padding: 0.75rem; text-align: center;">${formatHour(hour)}</td>
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 0.75rem; color: var(--text-secondary);">${reading.timestamp}</td>
+                <td style="padding: 0.75rem; text-align: right; font-weight: bold; color: var(--text-primary);">${reading.power_watts.toFixed(2)}</td>
+                <td style="padding: 0.75rem; text-align: center; color: var(--text-secondary);">${formatHour(hour)}</td>
                 <td style="padding: 0.75rem; text-align: center;">
-                    ${isAnomaly ? '<span style="color: #dc3545;">⚠️ Anomaly</span>' : '<span style="color: #28a745;">✅ Normal</span>'}
+                    ${isAnomaly ? '<span class="badge badge-danger">Anomaly</span>' : '<span class="badge badge-success">Normal</span>'}
                 </td>
                 <td style="padding: 0.75rem; text-align: right; color: ${deviation > 0 ? '#dc3545' : '#28a745'};">
                     ${deviation > 0 ? '+' : ''}${deviation.toFixed(1)}%
