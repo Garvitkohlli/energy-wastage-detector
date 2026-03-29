@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Energy Monitor{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>🔄 Real-Time Monitoring Dashboard</h1>
+    <p style="color: #666;">Complete monitoring with live charts, ML analysis, and detailed statistics</p>
+</div>
+
+<div class="card">
+    <h2>Select Appliance</h2>
+    <select id="applianceSelect" style="font-size: 1.2rem; padding: 1rem; width: 100%;">
+        <option value="">-- Choose an Appliance --</option>
+    </select>
+    <div id="applianceInfo" style="margin-top: 1rem;"></div>
+</div>
+
+<div class="card">
+    <h2>🎮 Controls</h2>
+    <button onclick="startMonitoring()" class="btn" style="background: #28a745; font-size: 1.2rem; padding: 1rem 2rem; margin-right: 1rem;">
+        ▶️ Start Monitoring
+    </button>
+    <button onclick="stopMonitoring()" class="btn" style="background: #dc3545; font-size: 1.2rem; padding: 1rem 2rem;">
+        ⏹️ Stop Monitoring
+    </button>
+</div>
+
+<!-- Live Status -->
+<div id="statusArea"></div>
+
+<!-- Session Statistics -->
+<div id="statsArea"></div>
+
+<!-- ML Recommendation -->
+<div id="recommendationArea"></div>
+
+<!-- Real-time Chart -->
+<div id="chartArea"></div>
+
+<!-- 24-Hour Pattern -->
+<div id="patternArea"></div>
+
+<!-- Detailed Tables -->
+<div id="tablesArea"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let selectedAppliance = '';
+let updateInterval = null;
+let realtimeChart = null;
+let patternChart = null;
+
+async function loadAppliances() {
+    try {
+        const response = await fetch('/api/appliances');
+        const appliances = await response.json();
+        
+        const select = document.getElementById('applianceSelect');
+        select.innerHTML = '<option value="">-- Choose an Appliance --</option>';
+        
+        appliances.forEach(app => {
+            const option = document.createElement('option');
+            option.value = app.name;
+            option.textContent = `${app.name} - ${app.avg_power}W (${app.monitoring ? '🔄 Active' : '⏸️ Stopped'})`;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading appliances:', error);
+    }
+}
+
+document.getElementById('applianceSelect').addEventListener('change', function(e) {
+    selectedAppliance = e.target.value;
+    
+    if (selectedAppliance) {
+        updateStatus();
+        if (updateInterval) clearInterval(updateInterval);
+        updateInterval = setInterval(updateStatus, 2000);
+    } else {
+        if (updateInterval) clearInterval(updateInterval);
+        clearDisplay();
+    }
+});
+
+function clearDisplay() {
+    document.getElementById('statusArea').innerHTML = '';
+    document.getElementById('statsArea').innerHTML = '';
+    document.getElementById('recommendationArea').innerHTML = '';
+    document.getElementById('chartArea').innerHTML = '';
+    document.getElementById('patternArea').innerHTML = '';
+    document.getElementById('tablesArea').innerHTML = '';
+}
+
+async function startMonitoring() {
+    if (!selectedAppliance) {
+        alert('Please select an appliance first!');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/start_monitoring/${selectedAppliance}`);
+        const data = await response.json();
+        alert(data.message);
+        loadAppliances();
+    } catch (error) {
+        alert('Error starting monitoring: ' + error.message);
+    }
+}
+
+async function stopMonitoring() {
+    if (!selectedAppliance) {
+        alert('Please select an appliance first!');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/stop_monitoring/${selectedAppliance}`);
+        const data = await response.json();
+        alert(data.message);
+        loadAppliances();
+    } catch (error) {
+        alert('Error stopping monitoring: ' + error.message);
+    }
+}
+
+async function updateStatus() {
+    if (!selectedAppliance) return;
+    
+    try {
+        const [statusRes, analysisRes, historyRes] = await Promise.all([
+            fetch(`/api/current_status/${selectedAppliance}`),
+            fetch(`/api/usage_analysis/${selectedAppliance}`),
+            fetch(`/api/history/${selectedAppliance}`)
+        ]);
+        
+        if (statusRes.ok) {
+            const status = await statusRes.json();
+            displayStatus(status);
+        }
+        
+        if (analysisRes.ok) {
+            const analysis = await analysisRes.json();
+            displayAnalysis(analysis);
+        }
+        
+        if (historyRes.ok) {
+            const history = await historyRes.json();
+            displayCharts(history, analysisRes.ok ? await analysisRes.json() : null);
+            displayTables(history);
+        }
+    } catch (error) {
+        console.error('Error updating status:', error);
+    }
+}
+
+function displayStatus(status) {
+    let statusClass = status.should_cutoff ? 'danger' : status.is_anomaly ? 'warning' : 'success';
+    let statusIcon = status.should_cutoff ? '🔴' : status.is_anomaly ? '⚠️' : '✅';
+    let statusText = status.should_cutoff ? 'CRITICAL - CUTOFF REQUIRED' : status.is_anomaly ? 'ANOMALY DETECTED' : 'NORMAL OPERATION';
+    
+    const html = `
+        <div class="card" style="border-left: 5px solid ${status.should_cutoff ? '#dc3545' : status.is_anomaly ? '#ffc107' : '#28a745'};">
+            <h2>${statusIcon} ${statusText}</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div class="stat-card">
+                    <h3>${status.current_power.toFixed(1)}W</h3>
+                    <p>Current Power</p>
+                </div>
+                <div class="stat-card">
+                    <h3>${status.average_power}W</h3>
+                    <p>Average Power</p>
+                </div>
+                <div class="stat-card" style="background: ${status.deviation > 0 ? 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' : 'linear-gradient(135deg, #28a745 0%, #218838 100%)'};">
+                    <h3>${status.deviation > 0 ? '+' : ''}${status.deviation}%</h3>
+                    <p>Deviation</p>
+                </div>
+                <div class="stat-card">
+                    <h3>${status.total_readings}</h3>
+                    <p>Total Readings</p>
+                </div>
+            </div>
+            <div class="alert alert-${statusClass}" style="margin-top: 1rem;">
+                <strong>🤖 ML Decision:</strong> ${status.should_cutoff ? 'Immediate power cutoff recommended!' : status.is_anomaly ? 'Enhanced monitoring activated' : 'Continue normal operation'}
+                ${status.model_type ? `<br><strong>Model:</strong> ${status.model_type}` : ''}
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('statusArea').innerHTML = html;
+    
+    // Display session stats if available
+    if (status.session_readings !== undefined) {
+        const statsHtml = `
+            <div class="card">
+                <h2>📊 Session Statistics</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #667eea;">
+                        <h3 style="color: #667eea; margin: 0;">${status.session_readings}</h3>
+                        <p style="margin: 0.5rem 0 0 0; color: #666;">Session Readings</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #ffc107;">
+                        <h3 style="color: #ffc107; margin: 0;">${status.session_anomalies}</h3>
+                        <p style="margin: 0.5rem 0 0 0; color: #666;">Anomalies Detected</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #dc3545;">
+                        <h3 style="color: #dc3545; margin: 0;">${status.session_cutoffs}</h3>
+                        <p style="margin: 0.5rem 0 0 0; color: #666;">Cutoffs Triggered</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 4px solid #28a745;">
+                        <h3 style="color: #28a745; margin: 0;">${((status.session_readings - status.session_anomalies) / status.session_readings * 100).toFixed(1)}%</h3>
+                        <p style="margin: 0.5rem 0 0 0; color: #666;">Normal Rate</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('statsArea').innerHTML = statsHtml;
+    }
+}
+
+function displayAnalysis(analysis) {
+    const html = `
+        <div class="card">
+            <h2>💡 ML Recommendation: Best Time to Cut Power</h2>
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; text-align: center;">
+                <h1 style="font-size: 3rem; margin: 0; color: white; -webkit-text-fill-color: white;">
+                    ${formatHour(analysis.best_cutoff_hour)}
+                </h1>
+                <p style="font-size: 1.2rem; margin-top: 1rem; opacity: 0.95;">
+                    <strong>Average Power:</strong> ${analysis.best_cutoff_avg}W<br>
+                    <strong>Peak Time:</strong> ${formatHour(analysis.worst_hour)} (${analysis.worst_hour_avg}W)<br>
+                    <strong>Power Difference:</strong> ${(analysis.worst_hour_avg - analysis.best_cutoff_avg).toFixed(1)}W
+                </p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🕐 24-Hour Usage Pattern (Live Updates)</h2>
+            <p style="color: #666; margin-bottom: 1rem;">
+                Green = Best cutoff time | Red = Peak usage | Updates every 2 seconds
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.5rem;">
+                ${generateHourlyGrid(analysis)}
+            </div>
+        </div>
+    `;
+    document.getElementById('recommendationArea').innerHTML = html;
+}
+
+function generateHourlyGrid(analysis) {
+    let html = '';
+    const bestHour = analysis.best_cutoff_hour;
+    const worstHour = analysis.worst_hour;
+    
+    for (let hour = 0; hour < 24; hour++) {
+        const stats = analysis.hourly_stats[hour];
+        let boxClass = '';
+        let boxStyle = 'background: #f0f0f0; padding: 1rem; border-radius: 8px; text-align: center; transition: all 0.3s;';
+        
+        if (hour === bestHour && stats.count > 0) {
+            boxStyle = 'background: #d4edda; padding: 1rem; border-radius: 8px; text-align: center; border: 3px solid #28a745; font-weight: bold; transform: scale(1.05); box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);';
+        } else if (hour === worstHour && stats.count > 0) {
+            boxStyle = 'background: #f8d7da; padding: 1rem; border-radius: 8px; text-align: center; border: 3px solid #dc3545; font-weight: bold; transform: scale(1.05); box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);';
+        }
+        
+        const displayText = stats.count > 0 ? `${stats.avg.toFixed(1)}W` : 'No data';
+        
+        html += `
+            <div style="${boxStyle}">
+                <strong style="font-size: 1.1rem;">${formatHour(hour)}</strong><br>
+                <span style="font-size: 1rem;">${displayText}</span><br>
+                <small style="color: #666;">${stats.count} readings</small>
+                ${hour === bestHour && stats.count > 0 ? '<br><strong style="color: #28a745;">✅ BEST</strong>' : ''}
+                ${hour === worstHour && stats.count > 0 ? '<br><strong style="color: #dc3545;">🔴 PEAK</strong>' : ''}
+            </div>
+        `;
+    }
+    
+    return html;
+}
+
+function displayCharts(history, analysis) {
+    if (history.length === 0) return;
+    
+    // Real-time power chart
+    const recentData = history.slice(-50);
+    const labels = recentData.map((h, i) => `#${i + 1}`);
+    const data = recentData.map(h => h.power_watts);
+    const avg = data.reduce((a, b) => a + b, 0) / data.length;
+    
+    let chartHtml = `
+        <div class="card">
+            <h2>⚡ Real-Time Power Consumption</h2>
+            <canvas id="realtimeChart"></canvas>
+        </div>
+    `;
+    
+    // Add 24-hour pattern chart if analysis available
+    if (analysis) {
+        chartHtml += `
+            <div class="card">
+                <h2>📊 24-Hour Usage Pattern</h2>
+                <canvas id="patternChart"></canvas>
+            </div>
+        `;
+    }
+    
+    document.getElementById('chartArea').innerHTML = chartHtml;
+    
+    // Create real-time chart
+    const ctx1 = document.getElementById('realtimeChart').getContext('2d');
+    if (realtimeChart) realtimeChart.destroy();
+    
+    realtimeChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Power (W)',
+                data: data,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 3,
+                pointHoverRadius: 6
+            }, {
+                label: 'Average',
+                data: Array(data.length).fill(avg),
+                borderColor: '#28a745',
+                borderDash: [5, 5],
+                borderWidth: 2,
+                fill: false,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Power (Watts)' }
+                }
+            }
+        }
+    });
+    
+    // Create 24-hour pattern chart
+    if (analysis) {
+        const ctx2 = document.getElementById('patternChart').getContext('2d');
+        if (patternChart) patternChart.destroy();
+        
+        const hours = [];
+        const avgPowers = [];
+        const colors = [];
+        
+        for (let hour = 0; hour < 24; hour++) {
+            hours.push(formatHour(hour));
+            avgPowers.push(analysis.hourly_stats[hour].avg);
+            
+            if (hour === analysis.best_cutoff_hour) {
+                colors.push('#28a745');
+            } else if (hour === analysis.worst_hour) {
+                colors.push('#dc3545');
+            } else {
+                colors.push('#667eea');
+            }
+        }
+        
+        patternChart = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: hours,
+                datasets: [{
+                    label: 'Average Power (W)',
+                    data: avgPowers,
+                    backgroundColor: colors,
+                    borderColor: colors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Green = Best cutoff time | Red = Peak usage'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Power (Watts)' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Hour of Day' }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function displayTables(history) {
+    if (history.length === 0) return;
+    
+    const recent = history.slice(-20).reverse();
+    
+    let html = `
+        <div class="card">
+            <h2>📋 Recent Readings (Last 20)</h2>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f5f5f5;">
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid #ddd;">Time</th>
+                            <th style="padding: 0.75rem; text-align: right; border-bottom: 2px solid #ddd;">Power (W)</th>
+                            <th style="padding: 0.75rem; text-align: center; border-bottom: 2px solid #ddd;">Hour</th>
+                            <th style="padding: 0.75rem; text-align: center; border-bottom: 2px solid #ddd;">Status</th>
+                            <th style="padding: 0.75rem; text-align: right; border-bottom: 2px solid #ddd;">Deviation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    recent.forEach(reading => {
+        const time = new Date(reading.timestamp);
+        const hour = time.getHours();
+        const isAnomaly = reading.is_anomaly || false;
+        const deviation = reading.deviation_percent || 0;
+        
+        html += `
+            <tr style="border-bottom: 1px solid #ddd;">
+                <td style="padding: 0.75rem;">${reading.timestamp}</td>
+                <td style="padding: 0.75rem; text-align: right; font-weight: bold;">${reading.power_watts.toFixed(2)}</td>
+                <td style="padding: 0.75rem; text-align: center;">${formatHour(hour)}</td>
+                <td style="padding: 0.75rem; text-align: center;">
+                    ${isAnomaly ? '<span style="color: #dc3545;">⚠️ Anomaly</span>' : '<span style="color: #28a745;">✅ Normal</span>'}
+                </td>
+                <td style="padding: 0.75rem; text-align: right; color: ${deviation > 0 ? '#dc3545' : '#28a745'};">
+                    ${deviation > 0 ? '+' : ''}${deviation.toFixed(1)}%
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('tablesArea').innerHTML = html;
+}
+
+function formatHour(hour) {
+    if (hour === 0) return '12 AM';
+    if (hour < 12) return `${hour} AM`;
+    if (hour === 12) return '12 PM';
+    return `${hour - 12} PM`;
+}
+
+// Load appliances on page load
+loadAppliances();
+</script>
+{% endblock %}

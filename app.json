@@ -1,0 +1,23 @@
+{
+  "name": "Energy Wastage Detection System",
+  "description": "ML-powered application to monitor appliance power consumption and detect energy wastage",
+  "repository": "https://github.com/yourusername/energy-monitor",
+  "keywords": ["python", "flask", "machine-learning", "energy-monitoring", "iot"],
+  "env": {
+    "SECRET_KEY": {
+      "description": "Secret key for Flask sessions",
+      "generator": "secret"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
