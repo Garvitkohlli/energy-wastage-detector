@@ -59,9 +59,10 @@ user_session_stats = {}  # {user_id: {appliance: stats}}
 
 # Initialize database
 print("\n" + "="*70)
-print("💾 INITIALIZING DATABASE")
+print("INITIALIZING DATABASE")
 print("="*70)
 db.init_database()
+print("="*70 + "\n")
 print("="*70 + "\n")
 
 def get_user_models(user_id):
@@ -91,7 +92,7 @@ def initialize_user_appliance_model(user_id, name, config):
     historical_readings = db.get_readings(name, limit=1000, user_id=user_id)
     
     if historical_readings and len(historical_readings) >= 50:
-        print(f"   📚 Loading {len(historical_readings)} historical readings for {name}...")
+        print(f"   Loading {len(historical_readings)} historical readings for {name}...")
         
         power_data = []
         hours = []
@@ -104,7 +105,7 @@ def initialize_user_appliance_model(user_id, name, config):
             user_usage_patterns[user_id][name][reading['hour']].append(reading['power_watts'])
         
         model.train(power_data, hours, days)
-        print(f"   ✅ Model trained with {len(power_data)} samples")
+        print(f"   Model trained with {len(power_data)} samples")
     else:
         # Generate minimal initial training data
         power_data = []
@@ -122,7 +123,7 @@ def initialize_user_appliance_model(user_id, name, config):
                 days.append(day)
         
         model.train(power_data, hours, days)
-        print(f"   ⚠️  No historical data, initialized with synthetic data")
+        print(f"   No historical data, initialized with synthetic data")
     
     user_monitors[user_id][name] = model
     user_monitoring_active[user_id][name] = False
@@ -160,7 +161,7 @@ def retrain_model_from_database(user_id, appliance_name, model):
         historical_readings = db.get_readings(appliance_name, limit=1000, user_id=user_id)
         
         if not historical_readings or len(historical_readings) < 10:
-            print(f"   ⚠️  Not enough data for retraining (need 50+, have {len(historical_readings) if historical_readings else 0})")
+            print(f"   Not enough data for retraining (need 50+, have {len(historical_readings) if historical_readings else 0})")
             print(f"{'='*70}\n")
             return False
         
@@ -177,9 +178,9 @@ def retrain_model_from_database(user_id, appliance_name, model):
         
         if success:
             avg_power = sum(power_data) / len(power_data)
-            print(f"   ✅ Model retrained successfully")
-            print(f"   📊 Training samples: {len(power_data)}")
-            print(f"   📈 New average power: {avg_power:.2f}W")
+            print(f"   Model retrained successfully")
+            print(f"   Training samples: {len(power_data)}")
+            print(f"   New average power: {avg_power:.2f}W")
             
             # Initialize user patterns if not exists
             if user_id not in user_usage_patterns:
@@ -230,9 +231,9 @@ def auto_monitor_appliance(user_id, appliance_name):
     stats = user_session_stats[user_id][appliance_name]
     last_log_time = time.time()
     
-    print(f"\n🚀 Monitoring thread started for User {user_id} - {appliance_name}")
+    print(f"\nMonitoring thread started for User {user_id} - {appliance_name}")
     print(f"   Page-aware monitoring: ENABLED")
-    print(f"   Data generation interval: 10 seconds")
+    print(f"   Data generation interval: 5 seconds")
     print(f"   Will pause after 10 seconds of inactivity\n")
     
     paused_logged = False
@@ -241,7 +242,7 @@ def auto_monitor_appliance(user_id, appliance_name):
         # Check if user is actively viewing this appliance
         if not monitoring_controller.is_active(user_id, appliance_name):
             if not paused_logged:
-                print(f"\n⏸️  PAUSED: User {user_id} - {appliance_name}")
+                print(f"\nPAUSED: User {user_id} - {appliance_name}")
                 print(f"   No activity detected. Data generation stopped.")
                 print(f"   Will resume when user returns to dashboard.\n")
                 paused_logged = True
@@ -250,7 +251,7 @@ def auto_monitor_appliance(user_id, appliance_name):
         
         # User is active again
         if paused_logged:
-            print(f"\n▶️  RESUMED: User {user_id} - {appliance_name}")
+            print(f"\nRESUMED: User {user_id} - {appliance_name}")
             print(f"   User returned. Data generation resumed.\n")
             paused_logged = False
         
@@ -325,27 +326,27 @@ def auto_monitor_appliance(user_id, appliance_name):
             
             if should_log:
                 print(f"\n{'='*70}")
-                print(f"🤖 User {user_id} - {appliance_name} | Reading #{stats['readings']}")
+                print(f"User {user_id} - {appliance_name} | Reading #{stats['readings']}")
                 print(f"{'='*70}")
-                print(f"⏰ {now.strftime('%Y-%m-%d %H:%M:%S')} | Hour: {current_hour}:00")
-                print(f"🔌 Power: {power:.2f}W | Avg: {avg_power:.2f}W | Dev: {deviation:+.1f}%")
-                print(f"🤖 Ensemble Score: {result['anomaly_score']:.4f} | Confidence: {result['confidence']}%")
-                print(f"🎯 Prediction: {'⚠️ ANOMALY' if result['is_anomaly'] else '✅ NORMAL'}")
+                print(f"Time: {now.strftime('%Y-%m-%d %H:%M:%S')} | Hour: {current_hour}:00")
+                print(f"Power: {power:.2f}W | Avg: {avg_power:.2f}W | Dev: {deviation:+.1f}%")
+                print(f"Ensemble Score: {result['anomaly_score']:.4f} | Confidence: {result['confidence']}%")
+                print(f"Prediction: {'ANOMALY' if result['is_anomaly'] else 'NORMAL'}")
                 
                 if should_cutoff:
-                    print(f"\n🔴 ENSEMBLE DECISION: POWER CUTOFF REQUIRED!")
+                    print(f"\nENSEMBLE DECISION: POWER CUTOFF REQUIRED!")
                 elif result['is_anomaly']:
-                    print(f"\n⚠️ ENSEMBLE DECISION: ENHANCED MONITORING")
+                    print(f"\nENSEMBLE DECISION: ENHANCED MONITORING")
                 else:
-                    print(f"\n✅ ENSEMBLE DECISION: NORMAL OPERATION")
+                    print(f"\nENSEMBLE DECISION: NORMAL OPERATION")
                 
-                print(f"\n📊 Session: {stats['readings']} readings | {stats['anomalies']} anomalies | {stats['cutoffs']} cutoffs")
+                print(f"\nSession: {stats['readings']} readings | {stats['anomalies']} anomalies | {stats['cutoffs']} cutoffs")
                 print(f"{'='*70}\n")
                 
                 last_log_time = current_time
         
-        # Sleep for 10 seconds before next reading
-        time.sleep(10)
+        # Sleep for 5 seconds before next reading
+        time.sleep(5)
 
 # ============= Authentication Routes =============
 
@@ -856,11 +857,11 @@ def get_monitoring_status():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print("\n" + "="*60)
-    print("🚀 Energy Monitoring System with User Authentication")
+    print("Energy Monitoring System with User Authentication")
     print("="*60)
-    print(f"📡 Server: http://localhost:{port}")
-    print(f"🔐 Authentication: Enabled")
-    print(f"🤖 ML Models: Per-User Learning")
-    print(f"💾 Database: SQLite (energy_monitor.db)")
+    print(f"Server: http://localhost:{port}")
+    print(f"Authentication: Enabled")
+    print(f"ML Models: Per-User Learning")
+    print(f"Database: SQLite (energy_monitor.db)")
     print("="*60 + "\n")
     app.run(host='0.0.0.0', port=port, debug=False, threaded=True)

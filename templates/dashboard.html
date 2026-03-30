@@ -79,7 +79,7 @@ document.getElementById('applianceSelect').addEventListener('change', function(e
     if (selectedAppliance) {
         updateStatus();
         if (updateInterval) clearInterval(updateInterval);
-        updateInterval = setInterval(updateStatus, 10000); // Update every 10 seconds
+        updateInterval = setInterval(updateStatus, 5000); // Update every 5 seconds
     } else {
         if (updateInterval) clearInterval(updateInterval);
         clearDisplay();
