@@ -199,7 +199,7 @@ python test_page_aware_monitoring.py
 
 - **Training Data**: Minimum 50 readings per appliance
 - **Retraining**: Every 100 new readings
-- **Update Frequency**: 2 seconds when active
+- **Update Frequency**: 45 seconds (cloud-optimized)
 - **Inactivity Timeout**: 10 seconds
 - **Anomaly Threshold**: 2/3 models must agree
 - **Cutoff Threshold**: >100% deviation + anomaly

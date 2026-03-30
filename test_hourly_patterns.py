@@ -1,5 +1,5 @@
-"""
 Test Hourly Patterns Display
+"""
 Verifies that hourly patterns are stored and retrieved correctly
 """
 import database as db

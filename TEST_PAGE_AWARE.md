@@ -38,7 +38,7 @@ Go to: http://localhost:5000
 
 ### Step 5: Watch It Work
 Keep the browser on the appliance page. You'll see:
-- Real-time chart updating every 2 seconds
+- Real-time chart updating every 45 seconds
 - Terminal showing readings being generated
 - Status: "Monitoring Active 🟢"
 

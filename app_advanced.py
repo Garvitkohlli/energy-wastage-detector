@@ -18,7 +18,14 @@ import database as db
 from app_monitoring_control import monitoring_controller
 
 app = Flask(__name__)
-app.secret_key = 'energy-monitor-secret-key-2024'
+
+# Production configuration
+if os.environ.get('FLASK_ENV') == 'production':
+    app.config['DEBUG'] = False
+    app.config['TESTING'] = False
+    app.secret_key = os.environ.get('SECRET_KEY', 'energy-monitor-secret-key-2024')
+else:
+    app.secret_key = 'energy-monitor-secret-key-2024'
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -225,6 +232,7 @@ def auto_monitor_appliance(user_id, appliance_name):
     
     print(f"\n🚀 Monitoring thread started for User {user_id} - {appliance_name}")
     print(f"   Page-aware monitoring: ENABLED")
+    print(f"   Data generation interval: 10 seconds")
     print(f"   Will pause after 10 seconds of inactivity\n")
     
     paused_logged = False
@@ -336,7 +344,8 @@ def auto_monitor_appliance(user_id, appliance_name):
                 
                 last_log_time = current_time
         
-        time.sleep(2)
+        # Sleep for 10 seconds before next reading
+        time.sleep(10)
 
 # ============= Authentication Routes =============
 
@@ -410,6 +419,15 @@ def logout():
 @login_required
 def index():
     return render_template('index.html')
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Docker and load balancers"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'version': '2.0'
+    }), 200
 
 @app.route('/dashboard')
 @login_required

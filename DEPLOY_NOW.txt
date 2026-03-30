@@ -1,0 +1,252 @@
+================================================================================
+                    DEPLOY TO AWS EC2 - QUICK START
+================================================================================
+
+WHAT YOU HAVE:
+--------------
+✅ Dockerfile - Container configuration
+✅ docker-compose.yml - Service orchestration
+✅ deploy-ec2.sh - Automated deployment script
+✅ quick-deploy-ec2.sh - One-command deployment
+✅ Health check endpoint - /health
+✅ Production configuration - Auto-configured
+✅ Page-aware monitoring - Saves costs
+✅ 10-second data interval - Balanced performance
+
+
+STEP 1: LAUNCH EC2 INSTANCE (5 minutes)
+----------------------------------------
+
+1. Go to: https://console.aws.amazon.com/ec2/
+
+2. Click "Launch Instance"
+
+3. Configure:
+   Name: energy-monitor
+   AMI: Ubuntu Server 22.04 LTS
+   Instance type: t2.small (recommended) or t2.micro (free tier)
+   
+4. Key pair: Create new or select existing
+   Download the .pem file!
+
+5. Network settings → Edit:
+   ✅ Allow SSH (port 22) from My IP
+   ✅ Allow HTTP (port 80) from Anywhere
+   ✅ Allow Custom TCP (port 5000) from Anywhere
+
+6. Storage: 8 GB (default is fine)
+
+7. Click "Launch Instance"
+
+8. Wait 2 minutes for instance to start
+
+9. Note your Public IPv4 address
+
+
+STEP 2: CONNECT TO EC2 (2 minutes)
+-----------------------------------
+
+Windows PowerShell:
+> ssh -i "your-key.pem" ubuntu@YOUR-EC2-IP
+
+Mac/Linux:
+$ chmod 400 your-key.pem
+$ ssh -i "your-key.pem" ubuntu@YOUR-EC2-IP
+
+Replace YOUR-EC2-IP with your actual IP address
+
+
+STEP 3: UPLOAD CODE (3 minutes)
+--------------------------------
+
+Option A - Using Git (recommended):
+On EC2:
+$ git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git
+$ cd YOUR-REPO
+
+Option B - Using SCP:
+On your local machine:
+> scp -i "your-key.pem" -r . ubuntu@YOUR-EC2-IP:~/energy-monitor
+
+Then on EC2:
+$ cd ~/energy-monitor
+
+
+STEP 4: DEPLOY (2 minutes)
+---------------------------
+
+One command deployment:
+$ chmod +x quick-deploy-ec2.sh
+$ ./quick-deploy-ec2.sh
+
+That's it! The script will:
+✅ Install Docker
+✅ Install Docker Compose
+✅ Create .env file with random SECRET_KEY
+✅ Build Docker image
+✅ Start the application
+✅ Show you the URL
+
+
+STEP 5: ACCESS YOUR APP
+------------------------
+
+Open browser:
+http://YOUR-EC2-IP:5000
+
+Login:
+Username: demo
+Password: demo123
+
+
+DONE! 🎉
+--------
+
+Your app is now running on AWS EC2!
+
+
+OPTIONAL: SETUP NGINX (Production)
+-----------------------------------
+
+For production with domain name:
+
+1. Install Nginx:
+$ sudo apt-get update
+$ sudo apt-get install -y nginx
+
+2. Create config:
+$ sudo nano /etc/nginx/sites-available/energy-monitor
+
+Paste this:
+server {
+    listen 80;
+    server_name YOUR-DOMAIN.com;
+    
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+3. Enable:
+$ sudo ln -s /etc/nginx/sites-available/energy-monitor /etc/nginx/sites-enabled/
+$ sudo nginx -t
+$ sudo systemctl restart nginx
+
+4. Access via: http://YOUR-DOMAIN.com
+
+
+OPTIONAL: SETUP SSL (HTTPS)
+----------------------------
+
+$ sudo apt-get install -y certbot python3-certbot-nginx
+$ sudo certbot --nginx -d YOUR-DOMAIN.com
+
+Follow prompts. Done!
+
+
+USEFUL COMMANDS
+---------------
+
+View logs:
+$ docker-compose logs -f
+
+Stop application:
+$ docker-compose down
+
+Restart application:
+$ docker-compose restart
+
+Update application:
+$ git pull
+$ docker-compose up -d --build
+
+Check status:
+$ docker-compose ps
+
+Check health:
+$ curl http://localhost:5000/health
+
+
+TROUBLESHOOTING
+---------------
+
+Can't connect to EC2?
+→ Check Security Group allows port 22 from your IP
+
+Application not starting?
+→ Check logs: docker-compose logs
+
+Port 5000 not accessible?
+→ Check Security Group allows port 5000 from 0.0.0.0/0
+
+Out of memory?
+→ Upgrade to t2.small instance
+
+
+COST
+----
+
+t2.micro (Free tier):
+- Free for first 12 months (750 hours/month)
+- After: ~$8.50/month
+
+t2.small (Recommended):
+- ~$17/month
+- Better performance
+- 2GB RAM
+
+
+SECURITY CHECKLIST
+------------------
+
+□ Change SECRET_KEY in .env file
+□ Create your own admin account
+□ Delete or disable demo account
+□ Restrict SSH to your IP only
+□ Setup SSL/HTTPS for production
+□ Enable AWS CloudWatch monitoring
+□ Setup automated backups
+
+
+FILES CREATED FOR DEPLOYMENT
+-----------------------------
+
+✅ Dockerfile - Container definition
+✅ docker-compose.yml - Service configuration
+✅ .dockerignore - Exclude unnecessary files
+✅ deploy-ec2.sh - Full deployment script
+✅ quick-deploy-ec2.sh - One-command deploy
+✅ start.sh - Application startup script
+✅ .env.example - Environment variables template
+✅ AWS_EC2_DEPLOYMENT.txt - Detailed guide
+✅ DEPLOY_NOW.txt - This quick start guide
+
+
+NEXT STEPS
+----------
+
+1. Change SECRET_KEY in .env
+2. Create your own user account
+3. Add your appliances
+4. Start monitoring
+5. Setup Nginx (optional)
+6. Setup SSL (optional)
+7. Configure backups
+
+
+SUPPORT
+-------
+
+Check logs: docker-compose logs -f
+Health check: curl http://localhost:5000/health
+AWS Console: https://console.aws.amazon.com/ec2/
+
+
+================================================================================
+                    YOUR APP IS READY FOR AWS EC2! 🚀
+================================================================================
+
+Total deployment time: ~15 minutes
+Estimated cost: $0-17/month (depending on instance type)

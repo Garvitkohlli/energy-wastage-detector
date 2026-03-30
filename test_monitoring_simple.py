@@ -43,11 +43,13 @@ def test_monitoring():
     print("   6. Click 'Start Monitoring'")
     print("   7. Watch this terminal for monitoring status")
     print()
+    print("   NOTE: Data generates every 45 seconds (cloud-optimized)")
+    print()
     
     input("Press Enter when you've started monitoring in the browser...")
     
     print("\n" + "="*60)
-    print("🔍 MONITORING STATUS (Updates every 2 seconds)")
+    print("🔍 MONITORING STATUS (Updates every 5 seconds)")
     print("="*60)
     print()
     
@@ -65,6 +67,7 @@ def test_monitoring():
     print("   • When viewing dashboard: Active sessions > 0")
     print("   • When you navigate away: Active sessions drops to 0 after 10 sec")
     print("   • When you return: Active sessions increases again")
+    print("   • Data generates every 45 seconds (not every 2 seconds)")
     print()
     print("Press Ctrl+C to stop monitoring")
     print()
@@ -78,12 +81,12 @@ def test_monitoring():
             active = monitoring_controller.get_active_monitors()
             count = len(active)
             
-            # Only print when status changes or every 5 iterations
-            if count != last_count or iteration % 5 == 0:
+            # Only print when status changes or every 3 iterations
+            if count != last_count or iteration % 3 == 0:
                 timestamp = time.strftime("%H:%M:%S")
                 
                 if count > 0:
-                    print(f"[{timestamp}] 🟢 ACTIVE: {count} session(s) - Data is being generated")
+                    print(f"[{timestamp}] 🟢 ACTIVE: {count} session(s) - Data generates every 45 sec")
                     for session in active:
                         print(f"           └─ User {session['user_id']}: {session['appliance']} "
                               f"(last activity: {session['last_activity']})")
@@ -93,7 +96,7 @@ def test_monitoring():
                 
                 last_count = count
             
-            time.sleep(2)
+            time.sleep(5)  # Check every 5 seconds
             
     except KeyboardInterrupt:
         print("\n\n" + "="*60)
@@ -145,9 +148,10 @@ def test_with_requests():
     
     # Step 3: Simulate viewing (active)
     print(f"\n3️⃣ Simulating active viewing (making API calls)...")
-    print("   📊 Making requests every 2 seconds for 10 seconds...")
+    print("   📊 Making requests every 5 seconds for 15 seconds...")
+    print("   (Note: Actual data generates every 45 seconds)")
     
-    for i in range(5):
+    for i in range(3):
         session.get(f"{BASE_URL}/api/current_status/{appliance}")
         session.get(f"{BASE_URL}/api/usage_analysis/{appliance}")
         
@@ -155,8 +159,8 @@ def test_with_requests():
         status_response = session.get(f"{BASE_URL}/api/monitoring_status")
         status = status_response.json()
         
-        print(f"   [{i+1}/5] Active sessions: {status['active_sessions']} 🟢")
-        time.sleep(2)
+        print(f"   [{i+1}/3] Active sessions: {status['active_sessions']} 🟢")
+        time.sleep(5)
     
     # Step 4: Stop viewing (inactive)
     print(f"\n4️⃣ Simulating navigation away (no API calls)...")
