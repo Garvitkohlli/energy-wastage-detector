@@ -16,6 +16,7 @@ from collections import defaultdict
 from ml_models import EnsembleEnergyModel
 import database as db
 from app_monitoring_control import monitoring_controller
+from sns_notifications import sns_notifier
 
 app = Flask(__name__)
 
@@ -305,6 +306,22 @@ def auto_monitor_appliance(user_id, appliance_name):
                     timestamp=now.isoformat(),
                     user_id=user_id
                 )
+                
+                # Send SNS email notification for anomaly
+                user_data = db.get_user_by_id(user_id)
+                username = user_data['username'] if user_data else f"User {user_id}"
+                
+                if not should_cutoff:
+                    # Send anomaly alert (warning level)
+                    sns_notifier.send_anomaly_alert(
+                        user_id=user_id,
+                        username=username,
+                        appliance=appliance_name,
+                        power=power,
+                        avg_power=avg_power,
+                        deviation=deviation,
+                        confidence=result['confidence']
+                    )
             
             if should_cutoff:
                 stats['cutoffs'] += 1
@@ -317,6 +334,20 @@ def auto_monitor_appliance(user_id, appliance_name):
                     reason=f"Ensemble ML detected critical anomaly ({result['confidence']}% confidence)",
                     timestamp=now.isoformat(),
                     user_id=user_id
+                )
+                
+                # Send SNS email notification for critical cutoff
+                user_data = db.get_user_by_id(user_id)
+                username = user_data['username'] if user_data else f"User {user_id}"
+                
+                sns_notifier.send_cutoff_alert(
+                    user_id=user_id,
+                    username=username,
+                    appliance=appliance_name,
+                    power=power,
+                    avg_power=avg_power,
+                    deviation=deviation,
+                    confidence=result['confidence']
                 )
             
             should_log = (current_time - last_log_time >= 10) or should_cutoff or (is_test_spike and result['is_anomaly'])

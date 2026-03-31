@@ -1,0 +1,195 @@
+================================================================================
+                    AWS SNS EMAIL NOTIFICATIONS SETUP
+================================================================================
+
+WHAT IT DOES:
+-------------
+Automatically sends email alerts when:
+1. Anomaly detected (usage too high - warning level)
+2. Power cutoff required (critical level - >100% deviation)
+
+
+STEP 1: CONFIGURE .env FILE
+----------------------------
+
+Add these to your .env file on EC2:
+
+SNS_ENABLED=true
+AWS_REGION=eu-north-1
+SNS_TOPIC_ARN=arn:aws:sns:eu-north-1:093529868142:energyalerts
+
+
+STEP 2: AWS CREDENTIALS
+------------------------
+
+Option A - Using IAM Role (Recommended for EC2):
+1. Go to AWS Console → IAM → Roles
+2. Create role for EC2
+3. Attach policy: AmazonSNSFullAccess
+4. Attach role to your EC2 instance
+5. No need for access keys!
+
+Option B - Using Access Keys:
+Add to .env file:
+AWS_ACCESS_KEY_ID=your-access-key-id
+AWS_SECRET_ACCESS_KEY=your-secret-access-key
+
+
+STEP 3: SUBSCRIBE TO SNS TOPIC
+-------------------------------
+
+Your SNS topic is already created:
+arn:aws:sns:eu-north-1:093529868142:energyalerts
+
+To receive emails:
+1. Go to AWS Console → SNS → Topics
+2. Find topic: energyalerts
+3. Click "Create subscription"
+4. Protocol: Email
+5. Endpoint: your-email@example.com
+6. Click "Create subscription"
+7. Check your email and confirm subscription
+
+
+STEP 4: DEPLOY
+---------------
+
+On EC2:
+$ docker-compose down
+$ docker-compose up -d --build
+
+
+STEP 5: TEST
+-------------
+
+The system will automatically send emails when:
+- Anomaly detected (deviation > 50%)
+- Critical anomaly (deviation > 100%)
+
+
+EMAIL EXAMPLES:
+---------------
+
+Warning Email (Anomaly):
+Subject: ⚠️ Energy Alert: Unusual Laptop Usage Detected
+Content:
+  Current Power: 150W
+  Average Power: 75W
+  Deviation: +100%
+  Status: Enhanced Monitoring
+
+Critical Email (Cutoff):
+Subject: 🔴 URGENT: Laptop Power Cutoff Required
+Content:
+  Current Power: 200W
+  Average Power: 75W
+  Deviation: +166%
+  Status: CRITICAL
+  Action: Power has been cut off
+
+
+TROUBLESHOOTING:
+----------------
+
+Issue: Not receiving emails
+Solution: 
+1. Check SNS subscription is confirmed
+2. Check spam folder
+3. Verify SNS_ENABLED=true in .env
+4. Check logs: docker-compose logs -f
+
+Issue: Permission denied
+Solution: 
+1. Attach IAM role to EC2 with SNS permissions
+2. Or add AWS credentials to .env
+
+Issue: Wrong region
+Solution: 
+1. Verify AWS_REGION matches your SNS topic region
+2. Your topic is in eu-north-1
+
+
+DISABLE NOTIFICATIONS:
+----------------------
+
+To disable SNS notifications:
+Set in .env:
+SNS_ENABLED=false
+
+Then restart:
+$ docker-compose restart
+
+
+COST:
+-----
+
+SNS Pricing:
+- First 1,000 emails/month: FREE
+- After: $2 per 100,000 emails
+- Very cheap for monitoring alerts!
+
+
+SECURITY:
+---------
+
+✅ Use IAM roles instead of access keys when possible
+✅ Never commit .env file to git
+✅ Restrict SNS topic access to your account only
+✅ Use least privilege IAM policies
+
+
+LOGS:
+-----
+
+When email is sent, you'll see in logs:
+"SNS Alert sent: message-id (Anomaly - Laptop)"
+"SNS Alert sent: message-id (CUTOFF - Laptop)"
+
+When disabled:
+"SNS Notifications: DISABLED"
+
+
+COMPLETE .env EXAMPLE:
+----------------------
+
+FLASK_ENV=production
+SECRET_KEY=your-random-secret-key
+PORT=5000
+TZ=Asia/Kolkata
+
+# SNS Email Notifications
+SNS_ENABLED=true
+AWS_REGION=eu-north-1
+SNS_TOPIC_ARN=arn:aws:sns:eu-north-1:093529868142:energyalerts
+
+# Only if not using IAM role:
+# AWS_ACCESS_KEY_ID=your-key
+# AWS_SECRET_ACCESS_KEY=your-secret
+
+
+QUICK SETUP COMMANDS:
+---------------------
+
+# On EC2
+cd ~/your-project
+
+# Edit .env
+nano .env
+
+# Add SNS configuration (see above)
+
+# Rebuild and restart
+docker-compose down
+docker-compose up -d --build
+
+# Check logs
+docker-compose logs -f
+
+
+DONE! 🎉
+--------
+
+You'll now receive email alerts when energy usage is too high!
+
+
+================================================================================
